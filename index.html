@@ -463,6 +463,28 @@
       color: #d5e5ff;
     }
 
+    .header-bar {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 38px;
+      margin-bottom: 10px;
+      padding: 0 14px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
+      border: 1px solid var(--line);
+      color: var(--blue-strong);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 10px 24px rgba(31, 63, 135, 0.06);
+    }
+
+    .header-bar span {
+      white-space: nowrap;
+    }
+
     .title-block h1,
     .title-block h2,
     .title-block h3 {
@@ -1630,7 +1652,7 @@
               <div class="screen-header">
                 <button class="back-button" data-go="welcome" aria-label="Back"></button>
                 <div class="title-block" style="flex: 1;">
-                  <div class="eyebrow">Onboarding</div>
+                  <div class="header-bar"><span>Onboarding</span></div>
                   <h2>Verify setup before the first serious session.</h2>
                   <p>Permissions, health checks, and platform limits are explicit so users know what the app can and cannot do.</p>
                 </div>
