@@ -1872,13 +1872,13 @@
               <div class="summary-card">
                 <div class="summary-row"><span>Selected lock level</span><span id="strictLockSummary">Strong</span></div>
                 <div class="summary-row"><span>Pause policy</span><span id="pausePolicySummary">One pause allowed</span></div>
-                <div class="summary-row"><span>Emergency unlock budget</span><span id="unlockBudgetSummary">1 unlock left today</span></div>
+                <div class="summary-row"><span>Emergency exit budget</span><span id="unlockBudgetSummary">1 exit left today</span></div>
               </div>
 
               <div class="list-grid" id="strictToggleList"></div>
 
               <div class="summary-card">
-                <div class="summary-row"><span>Exit path</span><span>Delay + reason prompt</span></div>
+                <div class="summary-row"><span>Exit path</span><span>Reason prompt + budget</span></div>
                 <div class="summary-row"><span>Platform note</span><span>iOS limits stay explicit.</span></div>
               </div>
 
@@ -1983,8 +1983,7 @@
               </div>
 
               <div class="summary-card">
-                <div class="summary-row"><span>Unlock delay</span><span id="reflectionDelayLabel">3 seconds remaining</span></div>
-                <div class="summary-row"><span>Budget today</span><span id="reflectionBudgetLabel">1 unlock left</span></div>
+                <div class="summary-row"><span>Budget today</span><span id="reflectionBudgetLabel">1 exit left</span></div>
                 <div class="summary-row"><span>Emergency apps</span><span>Phone, Messages, Maps</span></div>
               </div>
 
@@ -2370,7 +2369,7 @@
     ];
 
     const LOCK_LEVELS = [
-      { key: 'Gentle', detail: 'Nudge and delay before distractions open.', free: true, pauseRule: 'Pause allowed any time.' },
+      { key: 'Gentle', detail: 'Warn before distractions open.', free: true, pauseRule: 'Pause allowed any time.' },
       { key: 'Strong', detail: 'Block chosen distractions and allow one pause.', free: true, pauseRule: 'One pause allowed.' },
       { key: 'Strict', detail: 'No casual early ending and stronger anti-bypass rules.', free: false, pauseRule: 'Pause disabled. Emergency exit only.' }
     ];
@@ -2395,7 +2394,6 @@
     };
 
     const STRICT_OPTIONS = [
-      { key: 'timedDelay', title: 'Timed unlock delay', description: 'Emergency exits wait before ending the lock.' },
       { key: 'reasonPrompt', title: 'Reason prompt', description: 'Early exits log why the session was broken.' },
       { key: 'permissionHealth', title: 'Permission health checks', description: 'Broken setup is flagged before strict sessions.' },
       { key: 'lockDuringSession', title: 'Freeze block and allowlist edits', description: 'Mid-session weakening is prevented.' },
@@ -2456,7 +2454,6 @@
           breakAllowlistApps: ALLOWLIST_TEMPLATES.Work.break.slice(),
           emergencyApps: ['Phone', 'Messages', 'Maps', 'Calendar', 'Authenticator'],
           strict: {
-            timedDelay: true,
             reasonPrompt: true,
             permissionHealth: true,
             lockDuringSession: true,
@@ -2480,8 +2477,6 @@
           interceptTarget: 'Instagram',
           reflectionReason: 'Distracted',
           reflectionText: '',
-          reflectionDelayEndsAt: 0,
-          reflectionDelaySeconds: 3,
           unlockBudgetRemaining: 1,
           completionStatus: '',
           completionNotes: '',
@@ -2704,7 +2699,6 @@
       activeRing: document.getElementById('activeRing'),
       activeRingTime: document.getElementById('activeRingTime'),
       activeAllowlistChips: document.getElementById('activeAllowlistChips'),
-      reflectionDelayLabel: document.getElementById('reflectionDelayLabel'),
       reflectionBudgetLabel: document.getElementById('reflectionBudgetLabel'),
       reflectionReasons: document.getElementById('reflectionReasons'),
       reflectionText: document.getElementById('reflectionText'),
@@ -2892,7 +2886,6 @@
       closeOverlay();
       state.session.showComposer = false;
       state.session.progressDraft = '';
-      state.session.reflectionDelayEndsAt = 0;
       state.ui.deleteConfirm = false;
       if (state.breakSession.active) {
         setExternalStatus('App relaunched into the current break session.');
@@ -3191,7 +3184,6 @@
     function openReflection() {
       if (!state.session.active) return;
       closeOverlay();
-      state.session.reflectionDelayEndsAt = Date.now() + (state.session.reflectionDelaySeconds * 1000);
       state.screen = 'reflection';
       render();
     }
@@ -3219,7 +3211,6 @@
 
     function endSessionEarly() {
       syncTimers();
-      if (Date.now() < state.session.reflectionDelayEndsAt) return;
       if (state.session.unlockBudgetRemaining > 0) {
         state.session.unlockBudgetRemaining -= 1;
       }
@@ -3488,7 +3479,7 @@
     function renderStrict() {
       refs.strictLockSummary.textContent = state.contract.lockLevel + (state.contract.lockLevel === 'Strict' && state.plan !== 'Pro' ? ' (Pro preview recommended)' : '');
       refs.pausePolicySummary.textContent = pausePolicyText();
-      refs.unlockBudgetSummary.textContent = state.session.unlockBudgetRemaining + ' unlock left today';
+      refs.unlockBudgetSummary.textContent = state.session.unlockBudgetRemaining + ' exit' + (state.session.unlockBudgetRemaining === 1 ? '' : 's') + ' left today';
       refs.strictToggleList.innerHTML = STRICT_OPTIONS.map((item) => `
         <button class="toggle-card" data-strict-key="${escapeHtml(item.key)}">
           <div class="status-row">
@@ -3535,14 +3526,12 @@
     }
 
     function renderReflection() {
-      const remaining = Math.max(0, Math.ceil((state.session.reflectionDelayEndsAt - Date.now()) / 1000));
-      refs.reflectionDelayLabel.textContent = remaining > 0 ? remaining + ' second' + (remaining === 1 ? '' : 's') + ' remaining' : 'Delay cleared';
-      refs.reflectionBudgetLabel.textContent = state.session.unlockBudgetRemaining + ' unlock left';
+      refs.reflectionBudgetLabel.textContent = state.session.unlockBudgetRemaining + ' exit' + (state.session.unlockBudgetRemaining === 1 ? '' : 's') + ' left';
       refs.reflectionReasons.innerHTML = REFLECTION_REASONS.map((reason) => `
         <button class="reason-pill${state.session.reflectionReason === reason ? ' active' : ''}" data-reflection-reason="${escapeHtml(reason)}">${escapeHtml(reason)}</button>
       `).join('');
       refs.reflectionText.value = state.session.reflectionText;
-      refs.endSessionButton.disabled = remaining > 0;
+      refs.endSessionButton.disabled = false;
     }
 
     function renderComplete() {
