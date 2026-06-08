@@ -1,0 +1,3106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Contract Prototype</title>
+  <style>
+    /* Design tokens */
+    :root {
+      --page-bg: #090c13;
+      --page-bg-2: #121926;
+      --frame: #111620;
+      --frame-edge: rgba(255, 255, 255, 0.12);
+      --screen-bg: linear-gradient(180deg, #0f1724 0%, #111c2d 42%, #0b1220 100%);
+      --screen-glow: radial-gradient(circle at top, rgba(73, 208, 196, 0.2), transparent 46%);
+      --surface: rgba(255, 255, 255, 0.08);
+      --surface-strong: rgba(255, 255, 255, 0.12);
+      --surface-soft: rgba(255, 255, 255, 0.05);
+      --surface-elevated: rgba(10, 16, 28, 0.86);
+      --text: #f3f7ff;
+      --muted: #93a0b7;
+      --line: rgba(255, 255, 255, 0.09);
+      --accent: #6ee7d9;
+      --accent-strong: #25c7bb;
+      --accent-warm: #f6bc67;
+      --success: #6fe09a;
+      --danger: #ff7e85;
+      --warning: #ffc86b;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+      --ring-size: 132px;
+      --bezier: cubic-bezier(0.2, 0.9, 0.2, 1);
+      --font-display: "SF Pro Display", "Avenir Next", "Segoe UI", sans-serif;
+      --font-body: "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(110, 231, 217, 0.12), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(246, 188, 103, 0.14), transparent 24%),
+        radial-gradient(circle at 50% 100%, rgba(42, 93, 162, 0.35), transparent 30%),
+        linear-gradient(180deg, var(--page-bg), var(--page-bg-2));
+      color: var(--text);
+      font-family: var(--font-body);
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      background: none;
+    }
+
+    .page-shell {
+      position: relative;
+      width: 100%;
+      min-height: calc(100vh - 40px);
+      display: grid;
+      place-items: center;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      inset: auto;
+      border-radius: 999px;
+      filter: blur(50px);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .ambient-a {
+      width: 220px;
+      height: 220px;
+      background: rgba(110, 231, 217, 0.18);
+      top: 6%;
+      left: 10%;
+    }
+
+    .ambient-b {
+      width: 260px;
+      height: 260px;
+      background: rgba(246, 188, 103, 0.16);
+      right: 8%;
+      bottom: 10%;
+    }
+
+    /* Fake iPhone shell */
+    .phone-frame {
+      position: relative;
+      height: min(844px, 92vh);
+      aspect-ratio: 390 / 844;
+      max-width: min(390px, 92vw);
+      border-radius: 48px;
+      padding: 12px;
+      background:
+        linear-gradient(180deg, #1c2330 0%, #090d15 100%);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .phone-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 48px;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .side-button {
+      position: absolute;
+      left: -3px;
+      width: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #4a5365, #202734);
+      opacity: 0.85;
+    }
+
+    .side-button.top {
+      top: 140px;
+      height: 56px;
+    }
+
+    .side-button.mid {
+      top: 218px;
+      height: 84px;
+    }
+
+    .side-button.right {
+      left: auto;
+      right: -3px;
+      top: 208px;
+      height: 110px;
+    }
+
+    .phone-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 38px;
+      background: var(--screen-bg);
+      border: 1px solid var(--frame-edge);
+      isolation: isolate;
+    }
+
+    .phone-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--screen-glow);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .noise-layer {
+      position: absolute;
+      inset: 0;
+      opacity: 0.08;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.3) 0 0.5px, transparent 0.7px),
+        radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.28) 0 0.5px, transparent 0.7px);
+      background-size: 18px 18px;
+      pointer-events: none;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 118px;
+      height: 32px;
+      border-radius: 20px;
+      background: #05070d;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      z-index: 5;
+    }
+
+    .status-bar {
+      position: absolute;
+      top: 12px;
+      left: 0;
+      right: 0;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 26px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(243, 247, 255, 0.92);
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .signal {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+      height: 12px;
+    }
+
+    .signal span {
+      display: block;
+      width: 3px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .signal span:nth-child(1) { height: 4px; opacity: 0.6; }
+    .signal span:nth-child(2) { height: 6px; opacity: 0.7; }
+    .signal span:nth-child(3) { height: 8px; opacity: 0.8; }
+    .signal span:nth-child(4) { height: 10px; }
+
+    .wifi {
+      position: relative;
+      width: 14px;
+      height: 10px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-left-color: transparent;
+      border-right-color: transparent;
+      border-radius: 50%;
+      opacity: 0.95;
+    }
+
+    .wifi::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -1px;
+      width: 4px;
+      height: 4px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .battery {
+      position: relative;
+      width: 24px;
+      height: 12px;
+      border: 1.7px solid currentColor;
+      border-radius: 3px;
+    }
+
+    .battery::before {
+      content: "";
+      position: absolute;
+      inset: 1.5px 3px 1.5px 1.5px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+
+    .battery::after {
+      content: "";
+      position: absolute;
+      right: -3px;
+      top: 3px;
+      width: 2px;
+      height: 4px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    /* Screen stack */
+    .screen-stack {
+      position: absolute;
+      inset: 54px 0 0 0;
+      z-index: 2;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 14px 18px 128px;
+      opacity: 0;
+      transform: translateX(28px) scale(0.985);
+      transition:
+        opacity 260ms ease,
+        transform 340ms var(--bezier);
+      pointer-events: none;
+      scrollbar-width: none;
+    }
+
+    .screen::-webkit-scrollbar {
+      display: none;
+    }
+
+    .screen.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .screen-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 100%;
+    }
+
+    .screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .screen-header.compact {
+      align-items: flex-start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(110, 231, 217, 0.1);
+      border: 1px solid rgba(110, 231, 217, 0.16);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .title-block h1,
+    .title-block h2,
+    .title-block h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      line-height: 1.03;
+      letter-spacing: -0.03em;
+    }
+
+    .title-block h1 {
+      font-size: 36px;
+    }
+
+    .title-block h2 {
+      font-size: 27px;
+    }
+
+    .title-block h3 {
+      font-size: 21px;
+    }
+
+    .title-block p,
+    .copy {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .back-button,
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+      color: var(--text);
+      flex: 0 0 auto;
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    .back-button:hover,
+    .icon-button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .back-button::before {
+      content: "<";
+      font-size: 18px;
+      line-height: 1;
+      transform: translateX(-1px);
+    }
+
+    .hero-card,
+    .card,
+    .metric-card,
+    .panel {
+      position: relative;
+      border-radius: 24px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+    }
+
+    .hero-card::after,
+    .card::after,
+    .metric-card::after,
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 35%);
+      pointer-events: none;
+    }
+
+    .hero-card {
+      padding: 20px;
+      background:
+        radial-gradient(circle at top right, rgba(110, 231, 217, 0.22), transparent 38%),
+        linear-gradient(180deg, rgba(18, 28, 43, 0.95), rgba(9, 13, 21, 0.95));
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .hero-stat strong,
+    .metric-card strong {
+      display: block;
+      font-size: 21px;
+      font-family: var(--font-display);
+      letter-spacing: -0.03em;
+    }
+
+    .hero-stat span,
+    .metric-card span,
+    .micro-copy {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .button-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button,
+    .secondary-button,
+    .ghost-button {
+      min-height: 52px;
+      border-radius: 18px;
+      padding: 0 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      transition:
+        transform 180ms ease,
+        opacity 180ms ease,
+        box-shadow 180ms ease,
+        background 180ms ease;
+    }
+
+    .button {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #071318;
+      box-shadow: 0 16px 34px rgba(37, 199, 187, 0.26);
+    }
+
+    .secondary-button {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .ghost-button {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      color: var(--muted);
+    }
+
+    .button:hover,
+    .secondary-button:hover,
+    .ghost-button:hover,
+    .toggle-card:hover,
+    .option-chip:hover,
+    .block-card:hover,
+    .feature-card:hover,
+    .reason-pill:hover,
+    .outcome-pill:hover {
+      transform: translateY(-1px);
+    }
+
+    .button:disabled,
+    .secondary-button:disabled,
+    .ghost-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .benefit-grid,
+    .metric-grid,
+    .steps-grid,
+    .feature-grid,
+    .stats-grid,
+    .chart-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .benefit-grid,
+    .steps-grid,
+    .feature-grid,
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .benefit-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+    }
+
+    .benefit-card strong,
+    .step-card strong,
+    .section-title {
+      display: block;
+      font-family: var(--font-display);
+      letter-spacing: -0.02em;
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .step-card {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+    }
+
+    .step-index {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(110, 231, 217, 0.14);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .section-label {
+      margin: 4px 0 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    /* Forms */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(243, 247, 255, 0.95);
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      padding: 15px 16px;
+      outline: none;
+      resize: vertical;
+      min-height: 54px;
+    }
+
+    .field textarea {
+      min-height: 110px;
+      line-height: 1.45;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: rgba(110, 231, 217, 0.42);
+      box-shadow: 0 0 0 3px rgba(110, 231, 217, 0.12);
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .selector-group,
+    .chips,
+    .reason-grid,
+    .outcome-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .option-chip,
+    .reason-pill,
+    .outcome-pill,
+    .mini-chip {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-weight: 700;
+      transition: all 180ms ease;
+    }
+
+    .option-chip.active,
+    .reason-pill.active,
+    .outcome-pill.active,
+    .mini-chip.active {
+      background: rgba(110, 231, 217, 0.18);
+      color: var(--text);
+      border-color: rgba(110, 231, 217, 0.28);
+      box-shadow: 0 10px 20px rgba(16, 109, 102, 0.18);
+    }
+
+    .preview-card {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(17, 26, 42, 0.92), rgba(11, 16, 27, 0.92));
+      border: 1px solid rgba(110, 231, 217, 0.14);
+    }
+
+    .preview-card strong {
+      font-size: 18px;
+      letter-spacing: -0.02em;
+      font-family: var(--font-display);
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-row span:last-child {
+      color: var(--text);
+      text-align: right;
+    }
+
+    /* Blocking setup */
+    .plan-banner {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(18, 28, 42, 0.95), rgba(9, 14, 23, 0.96));
+      border: 1px solid rgba(246, 188, 103, 0.14);
+    }
+
+    .plan-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(246, 188, 103, 0.14);
+      color: var(--accent-warm);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .block-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .block-card {
+      padding: 14px;
+      border-radius: 20px;
+      min-height: 118px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+      transition: all 180ms ease;
+    }
+
+    .block-card.active {
+      background: rgba(110, 231, 217, 0.12);
+      border-color: rgba(110, 231, 217, 0.28);
+    }
+
+    .block-card strong {
+      display: block;
+      font-size: 16px;
+      font-family: var(--font-display);
+      margin-bottom: 6px;
+    }
+
+    .block-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .counter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .upgrade-hint {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(246, 188, 103, 0.08);
+      border: 1px solid rgba(246, 188, 103, 0.18);
+      color: #f9d39d;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .upgrade-hint.show {
+      display: block;
+      animation: slideUp 260ms ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .custom-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    /* Strict mode */
+    .toggle-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      transition: transform 180ms ease;
+    }
+
+    .toggle-copy strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .toggle-copy span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .switch {
+      width: 54px;
+      height: 32px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: background 180ms ease;
+      flex: 0 0 auto;
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f6f9ff;
+      transform: translateX(0);
+      transition: transform 180ms ease;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+    }
+
+    .switch.on {
+      background: rgba(110, 231, 217, 0.26);
+    }
+
+    .switch.on::after {
+      transform: translateX(22px);
+    }
+
+    .note-banner {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(110, 231, 217, 0.08);
+      border: 1px solid rgba(110, 231, 217, 0.16);
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cdecea;
+    }
+
+    .strict-score {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .strict-meter {
+      width: 110px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .strict-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-warm));
+    }
+
+    /* Review screen */
+    .contract-card {
+      padding: 18px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at top right, rgba(246, 188, 103, 0.16), transparent 32%),
+        linear-gradient(180deg, rgba(18, 27, 41, 0.96), rgba(8, 13, 23, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 14px;
+    }
+
+    .contract-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-pill.signed {
+      background: rgba(111, 224, 154, 0.12);
+      color: var(--success);
+    }
+
+    .contract-task {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .contract-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .contract-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .contract-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .contract-item span:last-child {
+      color: var(--text);
+      text-align: right;
+      max-width: 58%;
+    }
+
+    .signature-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0 0;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    }
+
+    .signature-mark {
+      display: grid;
+      gap: 4px;
+    }
+
+    .signature-mark strong {
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .signature-mark span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Active session */
+    .focus-hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 18px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at top right, rgba(110, 231, 217, 0.24), transparent 34%),
+        linear-gradient(180deg, rgba(17, 26, 43, 0.98), rgba(7, 12, 20, 0.98));
+      border: 1px solid rgba(110, 231, 217, 0.16);
+    }
+
+    .timer-copy strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 34px;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+
+    .timer-copy p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: var(--ring-size);
+      height: var(--ring-size);
+      display: grid;
+      place-items: center;
+    }
+
+    .ring-wrap svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-wrap .ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 8;
+    }
+
+    .ring-wrap .ring-progress {
+      fill: none;
+      stroke: url(#ringGradient);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 200ms linear;
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .ring-center strong {
+      display: block;
+      font-size: 28px;
+      font-family: var(--font-display);
+      letter-spacing: -0.04em;
+    }
+
+    .ring-center span {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-button {
+      min-height: 74px;
+      padding: 14px;
+      border-radius: 20px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 180ms ease;
+    }
+
+    .action-button strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .action-button span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .attempt-row,
+    .recent-list,
+    .feature-list,
+    .note-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .attempt-button,
+    .recent-card,
+    .feature-card,
+    .progress-note {
+      padding: 14px 15px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+
+    .attempt-button strong,
+    .recent-card strong,
+    .feature-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .attempt-button span,
+    .recent-card span,
+    .feature-card span,
+    .progress-note span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .composer {
+      display: none;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .composer.show {
+      display: grid;
+      animation: slideUp 260ms ease;
+    }
+
+    .composer textarea {
+      min-height: 96px;
+    }
+
+    /* Reflection + completion */
+    .reflection-card,
+    .completion-card {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .completion-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(111, 224, 154, 0.12);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .streak-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 16px;
+      border-radius: 20px;
+      background: rgba(110, 231, 217, 0.08);
+      border: 1px solid rgba(110, 231, 217, 0.14);
+    }
+
+    .streak-card strong {
+      font-size: 24px;
+      font-family: var(--font-display);
+      letter-spacing: -0.04em;
+    }
+
+    /* Dashboard + insights */
+    .chart-card {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chart {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      align-items: end;
+      gap: 10px;
+      min-height: 160px;
+    }
+
+    .chart-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-bar span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 126px;
+      display: flex;
+      align-items: end;
+      padding: 6px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .bar-fill {
+      width: 100%;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(110, 231, 217, 0.95), rgba(37, 199, 187, 0.72));
+      box-shadow: 0 10px 24px rgba(37, 199, 187, 0.22);
+    }
+
+    .recent-card {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .recent-card .status-tag {
+      flex: 0 0 auto;
+      min-width: 74px;
+      text-align: center;
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .status-yes {
+      background: rgba(111, 224, 154, 0.12);
+      color: var(--success);
+    }
+
+    .status-partially {
+      background: rgba(255, 200, 107, 0.12);
+      color: var(--warning);
+    }
+
+    .status-no {
+      background: rgba(255, 126, 133, 0.12);
+      color: var(--danger);
+    }
+
+    .insight-card {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .insight-card strong {
+      display: block;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+      font-family: var(--font-display);
+      margin-bottom: 6px;
+    }
+
+    /* Settings + future features */
+    .plan-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .plan-card {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .plan-card.current {
+      border-color: rgba(110, 231, 217, 0.2);
+      background: rgba(110, 231, 217, 0.08);
+    }
+
+    .plan-card.pro {
+      border-color: rgba(246, 188, 103, 0.16);
+      background: rgba(246, 188, 103, 0.06);
+    }
+
+    .plan-card strong {
+      display: block;
+      font-size: 22px;
+      font-family: var(--font-display);
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .plan-card ul {
+      margin: 14px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .future-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(246, 188, 103, 0.12);
+      color: var(--accent-warm);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Overlay */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(4, 7, 13, 0.72);
+      backdrop-filter: blur(14px);
+    }
+
+    .overlay.show {
+      display: flex;
+      animation: fadeIn 180ms ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .overlay-card {
+      width: 100%;
+      padding: 20px;
+      border-radius: 30px 30px 24px 24px;
+      background:
+        radial-gradient(circle at top right, rgba(255, 126, 133, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(17, 26, 43, 0.98), rgba(8, 13, 23, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 22px 50px rgba(0, 0, 0, 0.34);
+      display: grid;
+      gap: 14px;
+    }
+
+    .overlay-card strong {
+      font-size: 29px;
+      line-height: 1.03;
+      letter-spacing: -0.04em;
+      font-family: var(--font-display);
+    }
+
+    .overlay-contract {
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Navigation chrome */
+    .bottom-nav {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 28px;
+      z-index: 9;
+      display: none;
+      gap: 8px;
+      padding: 9px 10px;
+      border-radius: 24px;
+      background: rgba(8, 12, 20, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+    }
+
+    .bottom-nav.show {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .nav-button {
+      min-height: 56px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      transition: background 180ms ease, color 180ms ease;
+    }
+
+    .nav-button.active {
+      background: rgba(110, 231, 217, 0.14);
+      color: var(--text);
+    }
+
+    .nav-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1.6px solid currentColor;
+      position: relative;
+    }
+
+    .nav-dot.contract::after,
+    .nav-dot.dashboard::after,
+    .nav-dot.settings::after,
+    .nav-dot.home::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 4px;
+      background: currentColor;
+      opacity: 0.2;
+    }
+
+    .home-indicator {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      width: 136px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      z-index: 8;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .page-shell {
+        min-height: calc(100vh - 20px);
+      }
+
+      .screen {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="ambient-orb ambient-a"></div>
+    <div class="ambient-orb ambient-b"></div>
+
+    <div class="phone-frame" aria-label="Focus Contract phone prototype">
+      <div class="side-button top"></div>
+      <div class="side-button mid"></div>
+      <div class="side-button right"></div>
+
+      <div class="phone-screen">
+        <div class="noise-layer"></div>
+        <div class="dynamic-island"></div>
+
+        <header class="status-bar" aria-hidden="true">
+          <div id="statusTime">9:41</div>
+          <div class="status-icons">
+            <div class="signal">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="wifi"></div>
+            <div class="battery"></div>
+          </div>
+        </header>
+
+        <main class="screen-stack">
+          <section class="screen active" data-screen="welcome" aria-label="Welcome">
+            <div class="screen-body">
+              <div class="eyebrow">Focus Contract</div>
+              <div class="title-block">
+                <h1>Commit first. Focus second.</h1>
+                <p>A commitment-based focus app prototype that turns vague intent into a clear contract, then makes distraction feel costly.</p>
+              </div>
+
+              <div class="hero-card">
+                <div>
+                  <div class="section-label">What this prototype simulates</div>
+                  <h3 style="margin: 6px 0 0; font-size: 30px;">A serious focus session, not just a timer.</h3>
+                  <p class="copy">Define one task, choose what gets blocked, add strict mode, and review the result after the session ends.</p>
+                </div>
+
+                <div class="hero-stats">
+                  <div class="hero-stat">
+                    <strong>1 task</strong>
+                    <span>per contract</span>
+                  </div>
+                  <div class="hero-stat">
+                    <strong>3 blocks</strong>
+                    <span>free mode</span>
+                  </div>
+                  <div class="hero-stat">
+                    <strong>1 review</strong>
+                    <span>after focus</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="button-stack">
+                <button class="button" data-go="onboarding">Start a focus contract</button>
+                <button class="secondary-button" data-go="dashboard">View demo dashboard</button>
+              </div>
+
+              <div class="benefit-grid">
+                <div class="benefit-card">
+                  <strong>Define the task</strong>
+                  <span class="copy">The session does not begin until the work is explicit enough to commit to.</span>
+                </div>
+                <div class="benefit-card">
+                  <strong>Block distractions</strong>
+                  <span class="copy">Free mode still blocks up to three distractions each session. Pro expands the perimeter.</span>
+                </div>
+                <div class="benefit-card">
+                  <strong>Prove progress</strong>
+                  <span class="copy">Sessions close with reflection, output capture, and streak updates instead of empty celebration.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="onboarding" aria-label="Onboarding">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="welcome" aria-label="Back to welcome"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">How it works</div>
+                  <h2>Three steps. One real commitment.</h2>
+                  <p>Focus Contract creates enough friction that leaving the task starts to feel like breaking a promise to yourself.</p>
+                </div>
+              </div>
+
+              <div class="steps-grid">
+                <div class="step-card">
+                  <div class="step-index">1</div>
+                  <div>
+                    <strong>Choose one task</strong>
+                    <span class="copy">Make the target concrete enough that progress can be judged later.</span>
+                  </div>
+                </div>
+                <div class="step-card">
+                  <div class="step-index">2</div>
+                  <div>
+                    <strong>Lock distractions</strong>
+                    <span class="copy">Pick the loops that usually break focus and decide how strict the session should feel.</span>
+                  </div>
+                </div>
+                <div class="step-card">
+                  <div class="step-index">3</div>
+                  <div>
+                    <strong>Check in after</strong>
+                    <span class="copy">Close the session with honest review, output notes, and streak tracking.</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="button" data-action="begin-contract">Create my first contract</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="create" aria-label="Create contract">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="onboarding" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Step 1 of 4</div>
+                  <h2>Create your contract</h2>
+                  <p>The task comes first. No timer starts until the work is defined.</p>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="taskNameInput">Task name</label>
+                <input id="taskNameInput" type="text" placeholder="Example: Finish the product requirements draft">
+              </div>
+
+              <div class="field">
+                <label>Session length</label>
+                <div class="selector-group" id="durationGroup">
+                  <button class="option-chip" data-duration="25">25 min</button>
+                  <button class="option-chip" data-duration="45">45 min</button>
+                  <button class="option-chip" data-duration="60">60 min</button>
+                  <button class="option-chip" data-duration="90">90 min</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Intensity</label>
+                <div class="selector-group" id="intensityGroup">
+                  <button class="option-chip" data-intensity="Light">Light</button>
+                  <button class="option-chip" data-intensity="Standard">Standard</button>
+                  <button class="option-chip" data-intensity="Deep Work">Deep Work</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="commitmentInput">Commitment statement</label>
+                <textarea id="commitmentInput" placeholder="Write the line you want the app to reflect back when you try to break focus."></textarea>
+                <div class="helper">This is the language shown in the contract and intercept flow.</div>
+              </div>
+
+              <div class="preview-card">
+                <div class="section-label">I will work on...</div>
+                <strong id="previewTask">Define one clear task</strong>
+                <div class="preview-row">
+                  <span>Duration</span>
+                  <span id="previewDuration">45 minutes</span>
+                </div>
+                <div class="preview-row">
+                  <span>Intensity</span>
+                  <span id="previewIntensity">Standard</span>
+                </div>
+                <div class="preview-row">
+                  <span>Commitment</span>
+                  <span id="previewCommitment">Add the sentence you want to sign.</span>
+                </div>
+              </div>
+
+              <button class="button" id="nextBlocksButton" data-go="blocks">Next: choose blocks</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="blocks" aria-label="Blocking setup">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="create" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Step 2 of 4</div>
+                  <h2>Choose what gets blocked</h2>
+                  <p>Free mode still blocks distractions. Pro just expands how many and how often.</p>
+                </div>
+              </div>
+
+              <div class="plan-banner">
+                <div class="plan-pill">Free plan active</div>
+                <strong class="section-title" style="margin: 0;">Block up to 3 distractions this session</strong>
+                <span class="copy">Pro adds unlimited blocks, recurring schedules, and advanced strict mode. The prototype enforces the free limit without making upgrades noisy.</span>
+              </div>
+
+              <div class="counter-row">
+                <div class="counter"><span id="selectedBlockCount">0</span>/3 blocked this session</div>
+                <span class="helper">Tap again to remove one.</span>
+              </div>
+
+              <div class="block-grid" id="blockGrid"></div>
+
+              <div class="field">
+                <label for="customWebsiteInput">Custom websites</label>
+                <div class="custom-row">
+                  <input id="customWebsiteInput" type="text" placeholder="Add a domain like reddit.com">
+                  <button class="secondary-button" data-action="add-custom-block">Add</button>
+                </div>
+              </div>
+
+              <div class="chips" id="selectedBlocksChips"></div>
+              <div class="upgrade-hint" id="upgradeHint"></div>
+
+              <button class="button" data-go="strict">Next: strict mode</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="strict" aria-label="Strict mode">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="blocks" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Step 3 of 4</div>
+                  <h2>Set the friction level</h2>
+                  <p>Strict mode should feel serious enough to protect the session, not hostile enough to feel fake.</p>
+                </div>
+              </div>
+
+              <div class="strict-score panel">
+                <div>
+                  <div class="section-label">Strictness profile</div>
+                  <strong id="strictProfileLabel" style="display: block; margin-top: 6px; font-size: 22px; font-family: var(--font-display);">Balanced</strong>
+                </div>
+                <div>
+                  <div class="strict-meter">
+                    <div class="strict-fill" id="strictMeterFill" style="width: 60%;"></div>
+                  </div>
+                  <div class="helper" id="strictMeterCopy" style="margin-top: 8px; text-align: right;">3 of 5 guards enabled</div>
+                </div>
+              </div>
+
+              <div class="toggle-list" id="strictToggleList"></div>
+
+              <div class="note-banner">Prototype only: real blocking would require native iOS or Android permissions.</div>
+
+              <button class="button" data-go="review">Next: review contract</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="review" aria-label="Contract review">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="strict" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Step 4 of 4</div>
+                  <h2>Review the contract</h2>
+                  <p>Read it once. Sign it once. Then the session becomes harder to casually break.</p>
+                </div>
+              </div>
+
+              <div class="contract-card">
+                <div class="contract-status">
+                  <div class="status-pill" id="contractStatusPill">Unsigned</div>
+                  <div class="micro-copy" id="signatureTimestamp">Awaiting signature</div>
+                </div>
+
+                <p class="contract-task" id="reviewTask">Define one clear task</p>
+
+                <div class="contract-grid">
+                  <div class="contract-item">
+                    <span>Duration</span>
+                    <span id="reviewDuration">45 minutes</span>
+                  </div>
+                  <div class="contract-item">
+                    <span>Blocked distractions</span>
+                    <span id="reviewBlocks">None yet</span>
+                  </div>
+                  <div class="contract-item">
+                    <span>Strict mode</span>
+                    <span id="reviewStrict">Balanced</span>
+                  </div>
+                  <div class="contract-item">
+                    <span>Commitment statement</span>
+                    <span id="reviewCommitment">Add the sentence you want to sign.</span>
+                  </div>
+                </div>
+
+                <div class="signature-strip">
+                  <div class="signature-mark">
+                    <strong id="signatureLabel">Tap to sign</strong>
+                    <span id="signatureHelp">Your signed state resets if you change the contract.</span>
+                  </div>
+                  <button class="secondary-button" data-action="sign-contract" id="signContractButton">Sign Contract</button>
+                </div>
+              </div>
+
+              <div class="section-label">Sign &amp; Start</div>
+              <button class="button" id="startSessionButton" data-action="start-session" disabled>Start Focus Session</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="active" aria-label="Active focus session">
+            <div class="screen-body">
+              <div class="screen-header">
+                <div class="title-block">
+                  <div class="eyebrow">Focus session live</div>
+                  <h2 style="font-size: 24px;">Stay with the task you signed.</h2>
+                </div>
+                <button class="icon-button" data-action="complete-session" aria-label="Complete session">
+                  <span style="font-weight: 800;">+</span>
+                </button>
+              </div>
+
+              <div class="focus-hero">
+                <div class="timer-copy">
+                  <div class="section-label">Current task</div>
+                  <strong id="activeTask">Task name</strong>
+                  <p id="activeTimerMeta">45 minute Standard contract in progress.</p>
+                </div>
+
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 120 120" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6ee7d9"></stop>
+                        <stop offset="100%" stop-color="#f6bc67"></stop>
+                      </linearGradient>
+                    </defs>
+                    <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+                    <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="54"></circle>
+                  </svg>
+                  <div class="ring-center">
+                    <div>
+                      <strong id="activeTimer">45:00</strong>
+                      <span>remaining</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="section-label">Blocked right now</div>
+                <div class="chips" id="activeBlocks"></div>
+              </div>
+
+              <div class="action-grid">
+                <button class="action-button" data-action="distracted">
+                  <strong>I'm distracted</strong>
+                  <span>Surface the contract again.</span>
+                </button>
+                <button class="action-button" data-go="reflection">
+                  <strong>Emergency exit</strong>
+                  <span>Requires reflection before ending.</span>
+                </button>
+                <button class="action-button" data-action="toggle-composer">
+                  <strong>Log progress</strong>
+                  <span>Add a quick proof-of-work note.</span>
+                </button>
+                <button class="action-button" data-action="complete-session">
+                  <strong>Complete session</strong>
+                  <span>Skip to review for the demo.</span>
+                </button>
+              </div>
+
+              <div class="composer" id="progressComposer">
+                <div class="field">
+                  <label for="progressDraft">What did you just move forward?</label>
+                  <textarea id="progressDraft" placeholder="Example: I finished the intro section and outlined the next two paragraphs."></textarea>
+                </div>
+                <button class="secondary-button" data-action="save-progress-note">Save progress note</button>
+              </div>
+
+              <div class="note-list" id="progressNotes"></div>
+
+              <div>
+                <div class="section-label" style="margin-bottom: 8px;">Simulated blocked attempts</div>
+                <div class="attempt-row" id="attemptRow"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="reflection" aria-label="Emergency exit reflection">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-action="return-to-focus" aria-label="Back to focus"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Emergency exit</div>
+                  <h2>Why are you ending early?</h2>
+                  <p>Breaking the session should take one honest answer, not one impulsive tap.</p>
+                </div>
+              </div>
+
+              <div class="reflection-card">
+                <div class="section-label">Choose one reason</div>
+                <div class="reason-grid" id="reflectionReasons"></div>
+
+                <div class="field">
+                  <label for="reflectionText">What happened?</label>
+                  <textarea id="reflectionText" placeholder="Add context for the session review."></textarea>
+                </div>
+              </div>
+
+              <div class="button-stack">
+                <button class="button" data-action="end-session">End session</button>
+                <button class="secondary-button" data-action="return-to-focus">Go back to focus</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="complete" aria-label="Session complete">
+            <div class="screen-body">
+              <div class="title-block">
+                <div class="completion-badge">Session captured</div>
+                <h2 id="completeHeadline">Close the contract honestly.</h2>
+                <p id="completeSubhead">This prototype rewards consistency, but it still makes room for partial progress and rough days.</p>
+              </div>
+
+              <div class="completion-card">
+                <div class="section-label">Task completed?</div>
+                <div class="outcome-grid" id="completionOutcomes"></div>
+
+                <div class="field">
+                  <label for="completionNotes">Progress notes</label>
+                  <textarea id="completionNotes" placeholder="What changed during the session?"></textarea>
+                </div>
+
+                <div class="field">
+                  <label for="producedInput">What did you produce?</label>
+                  <input id="producedInput" type="text" placeholder="Example: first draft, solved bug, study notes">
+                </div>
+
+                <div class="streak-card">
+                  <div>
+                    <div class="section-label">Streak update</div>
+                    <strong id="streakPreview">7 days</strong>
+                  </div>
+                  <span class="copy" id="streakCopy" style="max-width: 140px; text-align: right;">Consistent reflection keeps the streak credible.</span>
+                </div>
+              </div>
+
+              <button class="button" data-action="save-session">Save session</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="dashboard" aria-label="Dashboard">
+            <div class="screen-body">
+              <div class="title-block">
+                <div class="eyebrow">Dashboard</div>
+                <h2>Focus is becoming measurable.</h2>
+                <p>Today, recent contracts, and the distraction pattern that still costs you the most time.</p>
+              </div>
+
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <span>Today's focus time</span>
+                  <strong id="metricFocusTime">105 min</strong>
+                </div>
+                <div class="metric-card">
+                  <span>Contracts completed</span>
+                  <strong id="metricContracts">3</strong>
+                </div>
+                <div class="metric-card">
+                  <span>Current streak</span>
+                  <strong id="metricStreak">6 days</strong>
+                </div>
+                <div class="metric-card">
+                  <span>Most blocked distraction</span>
+                  <strong id="metricBlocked">Instagram</strong>
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <div class="section-title">Weekly focus time</div>
+                <div class="chart" id="weeklyChart"></div>
+              </div>
+
+              <div class="button-row">
+                <button class="button" data-action="new-contract">New Contract</button>
+                <button class="secondary-button" data-go="insights">View Insights</button>
+                <button class="secondary-button" data-go="settings">Settings</button>
+              </div>
+
+              <div>
+                <div class="section-title" style="margin-bottom: 10px;">Recent sessions</div>
+                <div class="recent-list" id="recentSessions"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="insights" aria-label="Insights">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="dashboard" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="eyebrow">Insights</div>
+                  <h2>Patterns worth using.</h2>
+                  <p>Fake but plausible data that shows how the product explains focus behavior over time.</p>
+                </div>
+              </div>
+
+              <div class="feature-grid">
+                <div class="insight-card">
+                  <span class="section-label">Best focus time of day</span>
+                  <strong id="insightBestTime">9:00 AM - 11:00 AM</strong>
+                  <span class="copy">Your completion rate is highest when contracts start before lunch.</span>
+                </div>
+                <div class="insight-card">
+                  <span class="section-label">Most common distraction</span>
+                  <strong id="insightTopDistraction">Instagram</strong>
+                  <span class="copy">Short social checks still trigger the most intercepts.</span>
+                </div>
+                <div class="insight-card">
+                  <span class="section-label">Completion rate</span>
+                  <strong id="insightCompletionRate">86%</strong>
+                  <span class="copy">Completed and partially completed sessions are both reflected in the numerator.</span>
+                </div>
+                <div class="insight-card">
+                  <span class="section-label">Deep work hours this week</span>
+                  <strong id="insightDeepWork">5.5 hrs</strong>
+                  <span class="copy">Longer sessions are clustering into two reliable windows.</span>
+                </div>
+              </div>
+
+              <div class="hero-card">
+                <div class="section-label">Suggested next contract</div>
+                <h3 id="suggestedContractTitle" style="margin: 6px 0 0;">Draft the next high-friction task before 10:00 AM</h3>
+                <p class="copy" id="suggestedContractCopy">A 45 minute Standard contract with Social, Video, and News blocked is your most repeatable win pattern right now.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="settings" aria-label="Settings and plan">
+            <div class="screen-body">
+              <div class="title-block">
+                <div class="eyebrow">Settings &amp; Plan</div>
+                <h2>Free vs Pro, clearly explained.</h2>
+                <p>Free includes limited blocking power. Pro expands coverage and planning depth.</p>
+              </div>
+
+              <div class="plan-grid">
+                <div class="plan-card current">
+                  <div class="plan-pill">Current plan</div>
+                  <strong>Free</strong>
+                  <span class="copy">A credible starting point for commitment-based focus.</span>
+                  <ul>
+                    <li>3 blocked distractions per session</li>
+                    <li>2 active contracts per day</li>
+                    <li>Basic timer</li>
+                    <li>Basic reflection</li>
+                    <li>Basic stats</li>
+                  </ul>
+                </div>
+
+                <div class="plan-card pro">
+                  <div class="future-badge">Upgrade concept</div>
+                  <strong>Pro</strong>
+                  <span class="copy">Wider control, stronger accountability, richer review loops.</span>
+                  <ul>
+                    <li>Unlimited blocked distractions</li>
+                    <li>Recurring schedules</li>
+                    <li>Advanced strict mode</li>
+                    <li>Weekly insights</li>
+                    <li>Accountability partner</li>
+                    <li>Calendar integration</li>
+                    <li>Advanced review history</li>
+                  </ul>
+                </div>
+              </div>
+
+              <button class="secondary-button" data-go="reach">View Reach Features / Future Concepts</button>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="reach" aria-label="Reach features">
+            <div class="screen-body">
+              <div class="screen-header compact">
+                <button class="back-button" data-go="settings" aria-label="Back"></button>
+                <div class="title-block" style="flex: 1;">
+                  <div class="future-badge">Reach features / Future concepts</div>
+                  <h2>Useful later, not required for the MVP.</h2>
+                  <p>These ideas are visibly separated from the core prototype so the product remains understandable without them.</p>
+                </div>
+              </div>
+
+              <div class="feature-list">
+                <div class="feature-card"><strong>Accountability partner mode</strong><span>Let a trusted person receive contract summaries and missed-session flags.</span></div>
+                <div class="feature-card"><strong>AI-generated focus plans</strong><span>Suggest a contract shape based on the task, context, and recent behavior.</span></div>
+                <div class="feature-card"><strong>Calendar-aware contract suggestions</strong><span>Offer realistic session windows between meetings and deadlines.</span></div>
+                <div class="feature-card"><strong>Browser extension companion</strong><span>Mirror the same contract rules into desktop browsing sessions.</span></div>
+                <div class="feature-card"><strong>Desktop app companion</strong><span>Extend the focus perimeter beyond the phone prototype.</span></div>
+                <div class="feature-card"><strong>Wearable haptic reminders</strong><span>Nudge the user when contract drift patterns usually begin.</span></div>
+                <div class="feature-card"><strong>Team or study-room mode</strong><span>Shared contracts for co-working and quiet accountability.</span></div>
+                <div class="feature-card"><strong>Proof-of-work snapshots</strong><span>Optional evidence capture for users who want stronger review history.</span></div>
+                <div class="feature-card"><strong>Smart relapse detection</strong><span>Identify the specific moments and triggers that precede emergency exits.</span></div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <div class="overlay" id="interceptOverlay" data-screen="intercept" aria-hidden="true">
+          <div class="overlay-card">
+            <div class="eyebrow" style="background: rgba(255, 126, 133, 0.12); color: #ffb5ba; border-color: rgba(255, 126, 133, 0.16);">Blocked by your contract</div>
+            <strong>You signed a contract.</strong>
+            <p class="copy">Do you still want to break focus?</p>
+
+            <div class="overlay-contract">
+              <div class="preview-row">
+                <span>Committed task</span>
+                <span id="overlayTask">Finish the work</span>
+              </div>
+              <div class="preview-row">
+                <span>Trying to open</span>
+                <span id="overlayTarget">Instagram</span>
+              </div>
+              <div class="preview-row">
+                <span>Time remaining</span>
+                <span id="overlayTime">31:30</span>
+              </div>
+            </div>
+
+            <div class="button-stack">
+              <button class="button" data-action="close-overlay">Return to focus</button>
+              <button class="secondary-button" data-go="reflection">I need an emergency exit</button>
+            </div>
+          </div>
+        </div>
+
+        <nav class="bottom-nav" id="bottomNav" aria-label="App navigation">
+          <button class="nav-button" data-nav="home">
+            <span class="nav-dot home"></span>
+            <span>Home</span>
+          </button>
+          <button class="nav-button" data-nav="contract">
+            <span class="nav-dot contract"></span>
+            <span>Contract</span>
+          </button>
+          <button class="nav-button" data-nav="dashboard">
+            <span class="nav-dot dashboard"></span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-button" data-nav="settings">
+            <span class="nav-dot settings"></span>
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <div class="home-indicator" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // App state and persistence
+    const STORAGE_KEY = "focus-contract-prototype-v1";
+    const SCREENS_WITH_NAV = new Set(["create", "blocks", "strict", "review", "dashboard", "insights", "settings", "reach"]);
+    const BLOCK_LIBRARY = [
+      { key: "Social", detail: "Instagram, X, Threads, Snapchat", attempt: "Instagram" },
+      { key: "Video", detail: "YouTube, shorts, autoplay loops", attempt: "YouTube" },
+      { key: "Games", detail: "Quick-play loops and reward taps", attempt: "Game launcher" },
+      { key: "Shopping", detail: "Retail tabs and price checking", attempt: "Online store" },
+      { key: "News", detail: "Headlines, feeds, endless updates", attempt: "News feed" }
+    ];
+    const STRICT_OPTIONS = [
+      {
+        key: "allowEmergencyExit",
+        title: "Allow emergency exit",
+        description: "Keep a fail-safe path, but make it reflective."
+      },
+      {
+        key: "requireReflection",
+        title: "Require reflection before quitting",
+        description: "Ask why before letting the session collapse."
+      },
+      {
+        key: "cooldownUnlock",
+        title: "Cooldown before app unlock",
+        description: "Add a short delay before distraction apps feel available again."
+      },
+      {
+        key: "hideNotifications",
+        title: "Hide distracting notifications",
+        description: "Reduce ambient pull during the session."
+      },
+      {
+        key: "lockBlockList",
+        title: "Prevent changing block list during session",
+        description: "Stop mid-session weakening of the contract."
+      }
+    ];
+    const REFLECTION_REASONS = [
+      "Finished early",
+      "Need to switch tasks",
+      "Distracted",
+      "Something urgent came up",
+      "Other"
+    ];
+    const OUTCOMES = ["Yes", "Partially", "No"];
+
+    function buildWeekChart() {
+      const formatter = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+      const labels = [];
+      for (let offset = 6; offset >= 0; offset -= 1) {
+        const date = new Date();
+        date.setDate(date.getDate() - offset);
+        labels.push(formatter.format(date));
+      }
+      const defaults = [58, 74, 42, 90, 63, 47, 70];
+      return labels.map((label, index) => ({ label, minutes: defaults[index] }));
+    }
+
+    function defaultState() {
+      return {
+        screen: "welcome",
+        upgradeHint: "",
+        contract: {
+          taskName: "",
+          duration: 45,
+          intensity: "Standard",
+          commitment: "I will stay with this task until the timer ends, even if a distraction feels easier in the moment.",
+          blocks: ["Social", "Video"],
+          strict: {
+            allowEmergencyExit: true,
+            requireReflection: true,
+            cooldownUnlock: true,
+            hideNotifications: true,
+            lockBlockList: true
+          },
+          signed: false,
+          signedAt: ""
+        },
+        session: {
+          active: false,
+          secondsTotal: 45 * 60,
+          secondsRemaining: 45 * 60,
+          interceptOpen: false,
+          interceptTarget: "Instagram",
+          progressNotes: [],
+          progressDraft: "",
+          showComposer: false,
+          reflectionReason: "Distracted",
+          reflectionText: "",
+          completionStatus: "Yes",
+          completionNotes: "",
+          produced: "",
+          endedEarly: false,
+          saved: false
+        },
+        metrics: {
+          totalMinutesToday: 105,
+          contractsCompleted: 3,
+          streak: 6
+        },
+        history: [
+          {
+            task: "Q3 launch narrative",
+            duration: 60,
+            intensity: "Deep Work",
+            status: "Yes",
+            dateLabel: "Today",
+            output: "narrative outline",
+            note: "Finished the core argument and drafted the opening."
+          },
+          {
+            task: "Inbox triage sprint",
+            duration: 25,
+            intensity: "Light",
+            status: "Partially",
+            dateLabel: "Yesterday",
+            output: "priority list",
+            note: "Reduced the queue, but deferred the hardest responses."
+          },
+          {
+            task: "Study notes consolidation",
+            duration: 45,
+            intensity: "Standard",
+            status: "Yes",
+            dateLabel: "Mon",
+            output: "clean notes set",
+            note: "Combined handwritten notes into one review doc."
+          }
+        ],
+        blockCounts: {
+          Instagram: 11,
+          TikTok: 9,
+          YouTube: 8,
+          "News feed": 4,
+          "Online store": 3
+        },
+        chart: buildWeekChart()
+      };
+    }
+
+    function hydrateState() {
+      const base = defaultState();
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved) {
+          return base;
+        }
+        return {
+          ...base,
+          ...saved,
+          contract: {
+            ...base.contract,
+            ...(saved.contract || {}),
+            strict: {
+              ...base.contract.strict,
+              ...((saved.contract && saved.contract.strict) || {})
+            }
+          },
+          session: {
+            ...base.session,
+            ...(saved.session || {})
+          },
+          metrics: {
+            ...base.metrics,
+            ...(saved.metrics || {})
+          },
+          history: Array.isArray(saved.history) && saved.history.length ? saved.history : base.history,
+          blockCounts: {
+            ...base.blockCounts,
+            ...(saved.blockCounts || {})
+          },
+          chart: Array.isArray(saved.chart) && saved.chart.length === 7 ? saved.chart : base.chart
+        };
+      } catch (error) {
+        console.warn("Unable to load saved prototype state.", error);
+        return base;
+      }
+    }
+
+    let state = hydrateState();
+    let timerHandle = null;
+
+    const screens = [...document.querySelectorAll(".screen")];
+    const refs = {
+      statusTime: document.getElementById("statusTime"),
+      taskNameInput: document.getElementById("taskNameInput"),
+      commitmentInput: document.getElementById("commitmentInput"),
+      customWebsiteInput: document.getElementById("customWebsiteInput"),
+      reflectionText: document.getElementById("reflectionText"),
+      completionNotes: document.getElementById("completionNotes"),
+      producedInput: document.getElementById("producedInput"),
+      progressDraft: document.getElementById("progressDraft"),
+      previewTask: document.getElementById("previewTask"),
+      previewDuration: document.getElementById("previewDuration"),
+      previewIntensity: document.getElementById("previewIntensity"),
+      previewCommitment: document.getElementById("previewCommitment"),
+      selectedBlockCount: document.getElementById("selectedBlockCount"),
+      selectedBlocksChips: document.getElementById("selectedBlocksChips"),
+      blockGrid: document.getElementById("blockGrid"),
+      upgradeHint: document.getElementById("upgradeHint"),
+      strictToggleList: document.getElementById("strictToggleList"),
+      strictProfileLabel: document.getElementById("strictProfileLabel"),
+      strictMeterFill: document.getElementById("strictMeterFill"),
+      strictMeterCopy: document.getElementById("strictMeterCopy"),
+      reviewTask: document.getElementById("reviewTask"),
+      reviewDuration: document.getElementById("reviewDuration"),
+      reviewBlocks: document.getElementById("reviewBlocks"),
+      reviewStrict: document.getElementById("reviewStrict"),
+      reviewCommitment: document.getElementById("reviewCommitment"),
+      contractStatusPill: document.getElementById("contractStatusPill"),
+      signatureTimestamp: document.getElementById("signatureTimestamp"),
+      signatureLabel: document.getElementById("signatureLabel"),
+      signatureHelp: document.getElementById("signatureHelp"),
+      signContractButton: document.getElementById("signContractButton"),
+      startSessionButton: document.getElementById("startSessionButton"),
+      activeTask: document.getElementById("activeTask"),
+      activeTimerMeta: document.getElementById("activeTimerMeta"),
+      activeTimer: document.getElementById("activeTimer"),
+      activeBlocks: document.getElementById("activeBlocks"),
+      ringProgress: document.getElementById("ringProgress"),
+      progressComposer: document.getElementById("progressComposer"),
+      progressNotes: document.getElementById("progressNotes"),
+      attemptRow: document.getElementById("attemptRow"),
+      reflectionReasons: document.getElementById("reflectionReasons"),
+      completeHeadline: document.getElementById("completeHeadline"),
+      completeSubhead: document.getElementById("completeSubhead"),
+      streakPreview: document.getElementById("streakPreview"),
+      streakCopy: document.getElementById("streakCopy"),
+      metricFocusTime: document.getElementById("metricFocusTime"),
+      metricContracts: document.getElementById("metricContracts"),
+      metricStreak: document.getElementById("metricStreak"),
+      metricBlocked: document.getElementById("metricBlocked"),
+      weeklyChart: document.getElementById("weeklyChart"),
+      recentSessions: document.getElementById("recentSessions"),
+      insightBestTime: document.getElementById("insightBestTime"),
+      insightTopDistraction: document.getElementById("insightTopDistraction"),
+      insightCompletionRate: document.getElementById("insightCompletionRate"),
+      insightDeepWork: document.getElementById("insightDeepWork"),
+      suggestedContractTitle: document.getElementById("suggestedContractTitle"),
+      suggestedContractCopy: document.getElementById("suggestedContractCopy"),
+      completionOutcomes: document.getElementById("completionOutcomes"),
+      interceptOverlay: document.getElementById("interceptOverlay"),
+      overlayTask: document.getElementById("overlayTask"),
+      overlayTarget: document.getElementById("overlayTarget"),
+      overlayTime: document.getElementById("overlayTime"),
+      bottomNav: document.getElementById("bottomNav")
+    };
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function formatDuration(minutes) {
+      return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+    }
+
+    function formatTimer(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function strictCount() {
+      return Object.values(state.contract.strict).filter(Boolean).length;
+    }
+
+    function strictProfile() {
+      const count = strictCount();
+      if (count >= 5) return "Maximum";
+      if (count >= 4) return "Serious";
+      if (count >= 2) return "Balanced";
+      return "Light touch";
+    }
+
+    function invalidateSignature() {
+      state.contract.signed = false;
+      state.contract.signedAt = "";
+    }
+
+    function setScreen(screenName) {
+      state.screen = screenName;
+      if (screenName !== "active" && refs.interceptOverlay.classList.contains("show")) {
+        closeOverlay();
+      }
+      render();
+    }
+
+    function resetDraftSessionState() {
+      state.session = {
+        ...state.session,
+        active: false,
+        secondsTotal: state.contract.duration * 60,
+        secondsRemaining: state.contract.duration * 60,
+        interceptOpen: false,
+        interceptTarget: "Instagram",
+        progressNotes: [],
+        progressDraft: "",
+        showComposer: false,
+        reflectionReason: "Distracted",
+        reflectionText: "",
+        completionStatus: "Yes",
+        completionNotes: "",
+        produced: "",
+        endedEarly: false,
+        saved: false
+      };
+    }
+
+    function beginContractFlow() {
+      resetDraftSessionState();
+      invalidateSignature();
+      setScreen("create");
+    }
+
+    function resetForNewContract() {
+      const defaults = defaultState();
+      state.contract = {
+        ...defaults.contract,
+        duration: 45,
+        intensity: "Standard",
+        commitment: defaults.contract.commitment
+      };
+      state.upgradeHint = "";
+      resetDraftSessionState();
+      setScreen("create");
+    }
+
+    function mostBlockedDistraction() {
+      const entries = Object.entries(state.blockCounts);
+      if (!entries.length) return "Instagram";
+      entries.sort((a, b) => b[1] - a[1]);
+      return entries[0][0];
+    }
+
+    function attemptsForCurrentSession() {
+      return state.contract.blocks.map((blockKey) => {
+        const match = BLOCK_LIBRARY.find((item) => item.key === blockKey);
+        return match ? match.attempt : blockKey;
+      });
+    }
+
+    function openOverlay(targetLabel) {
+      state.session.interceptOpen = true;
+      state.session.interceptTarget = targetLabel;
+      refs.interceptOverlay.classList.add("show");
+      refs.interceptOverlay.setAttribute("aria-hidden", "false");
+      renderOverlay();
+      saveState();
+    }
+
+    function closeOverlay() {
+      state.session.interceptOpen = false;
+      refs.interceptOverlay.classList.remove("show");
+      refs.interceptOverlay.setAttribute("aria-hidden", "true");
+      saveState();
+    }
+
+    function startTimer() {
+      clearInterval(timerHandle);
+      timerHandle = window.setInterval(() => {
+        if (!state.session.active) {
+          clearInterval(timerHandle);
+          return;
+        }
+
+        state.session.secondsRemaining = Math.max(0, state.session.secondsRemaining - 30);
+        if (state.session.secondsRemaining <= 0) {
+          completeSession(false, "Yes");
+          return;
+        }
+
+        renderActiveSession();
+        renderOverlay();
+        saveState();
+      }, 500);
+    }
+
+    function startSession() {
+      state.session.active = true;
+      state.session.secondsTotal = state.contract.duration * 60;
+      state.session.secondsRemaining = state.contract.duration * 60;
+      state.session.endedEarly = false;
+      state.session.saved = false;
+      state.session.showComposer = false;
+      state.session.progressDraft = "";
+      state.session.progressNotes = [];
+      state.session.completionStatus = "Yes";
+      state.session.completionNotes = "";
+      state.session.produced = "";
+      setScreen("active");
+      startTimer();
+    }
+
+    function completeSession(endedEarly, defaultOutcome) {
+      state.session.active = false;
+      clearInterval(timerHandle);
+      timerHandle = null;
+      closeOverlay();
+      state.session.endedEarly = endedEarly;
+      state.session.completionStatus = defaultOutcome;
+      state.session.saved = false;
+      if (endedEarly && !state.session.completionNotes) {
+        state.session.completionNotes = state.session.reflectionText;
+      }
+      if (endedEarly && !state.session.produced && state.session.reflectionReason === "Finished early") {
+        state.session.produced = "Finished early";
+      }
+      setScreen("complete");
+    }
+
+    function sessionMinutesUsed() {
+      const elapsedSeconds = Math.max(0, state.session.secondsTotal - state.session.secondsRemaining);
+      const rawMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
+      return Math.min(state.contract.duration, rawMinutes);
+    }
+
+    function saveCompletedSession() {
+      if (state.session.saved) {
+        setScreen("dashboard");
+        return;
+      }
+
+      const usedMinutes = sessionMinutesUsed();
+      const status = state.session.completionStatus;
+      const dateLabel = "Today";
+      state.history.unshift({
+        task: state.contract.taskName || "Untitled contract",
+        duration: usedMinutes,
+        intensity: state.contract.intensity,
+        status,
+        dateLabel,
+        output: state.session.produced || "Not specified",
+        note: state.session.completionNotes || "No notes added."
+      });
+      state.history = state.history.slice(0, 8);
+
+      state.metrics.totalMinutesToday += usedMinutes;
+      state.metrics.contractsCompleted += status === "No" ? 0 : 1;
+      if (status === "Yes") {
+        state.metrics.streak += 1;
+      } else if (status === "No") {
+        state.metrics.streak = Math.max(1, state.metrics.streak - 1);
+      }
+
+      state.chart[state.chart.length - 1].minutes = Math.min(180, state.chart[state.chart.length - 1].minutes + usedMinutes);
+
+      attemptsForCurrentSession().forEach((attempt) => {
+        state.blockCounts[attempt] = (state.blockCounts[attempt] || 0) + 1;
+      });
+
+      state.session.saved = true;
+      setScreen("dashboard");
+    }
+
+    function addCustomBlock() {
+      const rawValue = refs.customWebsiteInput.value.trim();
+      if (!rawValue) return;
+      const normalized = rawValue.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+      if (!normalized) return;
+
+      const alreadySelected = state.contract.blocks.includes(normalized);
+      if (!alreadySelected && state.contract.blocks.length >= 3) {
+        state.upgradeHint = "Free mode covers up to 3 blocked distractions per session. Pro would let you add more and save recurring sets.";
+        render();
+        return;
+      }
+
+      invalidateSignature();
+      state.upgradeHint = "";
+      if (!alreadySelected) {
+        state.contract.blocks.push(normalized);
+      }
+      refs.customWebsiteInput.value = "";
+      render();
+    }
+
+    function toggleBlock(blockKey) {
+      const index = state.contract.blocks.indexOf(blockKey);
+      if (index >= 0) {
+        invalidateSignature();
+        state.contract.blocks.splice(index, 1);
+        state.upgradeHint = "";
+        render();
+        return;
+      }
+
+      if (state.contract.blocks.length >= 3) {
+        state.upgradeHint = "Free mode covers up to 3 blocked distractions per session. Pro adds unlimited blocks, recurring schedules, and broader strict mode.";
+        render();
+        return;
+      }
+
+      invalidateSignature();
+      state.upgradeHint = "";
+      state.contract.blocks.push(blockKey);
+      render();
+    }
+
+    function toggleStrict(key) {
+      invalidateSignature();
+      state.contract.strict[key] = !state.contract.strict[key];
+      render();
+    }
+
+    function signContract() {
+      if (!state.contract.taskName.trim()) {
+        setScreen("create");
+        return;
+      }
+      state.contract.signed = true;
+      state.contract.signedAt = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      render();
+    }
+
+    function updateStatusTime() {
+      refs.statusTime.textContent = new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(new Date());
+    }
+
+    // Rendering
+    function renderCreateScreen() {
+      refs.taskNameInput.value = state.contract.taskName;
+      refs.commitmentInput.value = state.contract.commitment;
+      refs.previewTask.textContent = state.contract.taskName.trim() || "Define one clear task";
+      refs.previewDuration.textContent = formatDuration(state.contract.duration);
+      refs.previewIntensity.textContent = state.contract.intensity;
+      refs.previewCommitment.textContent = state.contract.commitment.trim() || "Add the sentence you want to sign.";
+
+      document.querySelectorAll("[data-duration]").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.duration) === state.contract.duration);
+      });
+      document.querySelectorAll("[data-intensity]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.intensity === state.contract.intensity);
+      });
+
+      refs.startSessionButton.disabled = !state.contract.signed;
+      document.getElementById("nextBlocksButton").disabled = !state.contract.taskName.trim();
+    }
+
+    function renderBlocks() {
+      refs.blockGrid.innerHTML = BLOCK_LIBRARY.map((block) => {
+        const active = state.contract.blocks.includes(block.key);
+        return `
+          <button class="block-card${active ? " active" : ""}" data-block="${escapeHtml(block.key)}">
+            <strong>${escapeHtml(block.key)}</strong>
+            <span>${escapeHtml(block.detail)}</span>
+          </button>
+        `;
+      }).join("");
+
+      refs.selectedBlockCount.textContent = String(state.contract.blocks.length);
+      refs.selectedBlocksChips.innerHTML = state.contract.blocks.length
+        ? state.contract.blocks.map((block) => `<button class="mini-chip active" data-block="${escapeHtml(block)}">${escapeHtml(block)}</button>`).join("")
+        : `<span class="helper">No distractions selected yet.</span>`;
+
+      refs.upgradeHint.textContent = state.upgradeHint;
+      refs.upgradeHint.classList.toggle("show", Boolean(state.upgradeHint));
+    }
+
+    function renderStrict() {
+      refs.strictToggleList.innerHTML = STRICT_OPTIONS.map((option) => {
+        const on = state.contract.strict[option.key];
+        return `
+          <button class="toggle-card" data-strict="${escapeHtml(option.key)}">
+            <div class="toggle-copy">
+              <strong>${escapeHtml(option.title)}</strong>
+              <span>${escapeHtml(option.description)}</span>
+            </div>
+            <span class="switch ${on ? "on" : ""}" aria-hidden="true"></span>
+          </button>
+        `;
+      }).join("");
+
+      const count = strictCount();
+      refs.strictProfileLabel.textContent = strictProfile();
+      refs.strictMeterFill.style.width = `${Math.max(12, (count / STRICT_OPTIONS.length) * 100)}%`;
+      refs.strictMeterCopy.textContent = `${count} of ${STRICT_OPTIONS.length} guards enabled`;
+    }
+
+    function renderReview() {
+      refs.reviewTask.textContent = state.contract.taskName.trim() || "Define one clear task";
+      refs.reviewDuration.textContent = formatDuration(state.contract.duration);
+      refs.reviewBlocks.textContent = state.contract.blocks.length ? state.contract.blocks.join(", ") : "No distractions selected";
+      refs.reviewStrict.textContent = strictProfile();
+      refs.reviewCommitment.textContent = state.contract.commitment.trim() || "Add the sentence you want to sign.";
+      refs.contractStatusPill.textContent = state.contract.signed ? "Signed" : "Unsigned";
+      refs.contractStatusPill.classList.toggle("signed", state.contract.signed);
+      refs.signatureTimestamp.textContent = state.contract.signed ? `Signed at ${state.contract.signedAt}` : "Awaiting signature";
+      refs.signatureLabel.textContent = state.contract.signed ? "Signed" : "Tap to sign";
+      refs.signatureHelp.textContent = state.contract.signed ? "The session can begin now." : "Your signed state resets if you change the contract.";
+      refs.signContractButton.textContent = state.contract.signed ? "Signed" : "Sign Contract";
+      refs.signContractButton.disabled = state.contract.signed;
+      refs.startSessionButton.disabled = !state.contract.signed;
+    }
+
+    function renderActiveSession() {
+      refs.activeTask.textContent = state.contract.taskName.trim() || "Untitled contract";
+      refs.activeTimerMeta.textContent = `${state.contract.duration} minute ${state.contract.intensity} contract in progress.`;
+      refs.activeTimer.textContent = formatTimer(state.session.secondsRemaining);
+      refs.activeBlocks.innerHTML = state.contract.blocks.map((block) => `<span class="mini-chip active">${escapeHtml(block)}</span>`).join("");
+      refs.progressComposer.classList.toggle("show", state.session.showComposer);
+      refs.progressDraft.value = state.session.progressDraft;
+      refs.progressNotes.innerHTML = state.session.progressNotes.length
+        ? state.session.progressNotes.map((note) => `
+            <div class="progress-note">
+              <strong style="display:block; margin-bottom:4px;">Progress logged</strong>
+              <span>${escapeHtml(note)}</span>
+            </div>
+          `).join("")
+        : "";
+
+      const attempts = attemptsForCurrentSession();
+      refs.attemptRow.innerHTML = attempts.map((attempt) => `
+        <button class="attempt-button" data-attempt="${escapeHtml(attempt)}">
+          <strong>Try opening ${escapeHtml(attempt)}</strong>
+          <span>Simulate the distraction intercept flow.</span>
+        </button>
+      `).join("");
+
+      const radius = 54;
+      const circumference = Math.PI * 2 * radius;
+      const progress = 1 - (state.session.secondsRemaining / state.session.secondsTotal);
+      refs.ringProgress.style.strokeDasharray = String(circumference);
+      refs.ringProgress.style.strokeDashoffset = String(circumference * (1 - progress));
+    }
+
+    function renderReflection() {
+      refs.reflectionReasons.innerHTML = REFLECTION_REASONS.map((reason) => `
+        <button class="reason-pill${state.session.reflectionReason === reason ? " active" : ""}" data-reason="${escapeHtml(reason)}">${escapeHtml(reason)}</button>
+      `).join("");
+      refs.reflectionText.value = state.session.reflectionText;
+    }
+
+    function streakPreviewForOutcome() {
+      if (state.session.completionStatus === "Yes") {
+        return state.metrics.streak + 1;
+      }
+      if (state.session.completionStatus === "No") {
+        return Math.max(1, state.metrics.streak - 1);
+      }
+      return state.metrics.streak;
+    }
+
+    function renderComplete() {
+      refs.completionOutcomes.innerHTML = OUTCOMES.map((outcome) => `
+        <button class="outcome-pill${state.session.completionStatus === outcome ? " active" : ""}" data-outcome="${escapeHtml(outcome)}">${escapeHtml(outcome)}</button>
+      `).join("");
+
+      const endedEarly = state.session.endedEarly;
+      refs.completeHeadline.textContent = endedEarly ? "You ended the session early." : "The session is complete.";
+      refs.completeSubhead.textContent = endedEarly
+        ? "Capture the outcome honestly so the dashboard reflects what really happened."
+        : "Log what you produced and decide whether the contract was fulfilled."
+      ;
+      refs.completionNotes.value = state.session.completionNotes;
+      refs.producedInput.value = state.session.produced;
+      refs.streakPreview.textContent = `${streakPreviewForOutcome()} days`;
+      refs.streakCopy.textContent = state.session.completionStatus === "Yes"
+        ? "A completed contract strengthens the streak."
+        : state.session.completionStatus === "Partially"
+          ? "Partial completion keeps the history honest without inflating it."
+          : "Broken contracts should be visible in the review history.";
+    }
+
+    function renderDashboard() {
+      refs.metricFocusTime.textContent = `${state.metrics.totalMinutesToday} min`;
+      refs.metricContracts.textContent = String(state.metrics.contractsCompleted);
+      refs.metricStreak.textContent = `${state.metrics.streak} days`;
+      refs.metricBlocked.textContent = mostBlockedDistraction();
+
+      const maxValue = Math.max(...state.chart.map((item) => item.minutes), 1);
+      refs.weeklyChart.innerHTML = state.chart.map((item) => {
+        const height = Math.max(16, Math.round((item.minutes / maxValue) * 100));
+        return `
+          <div class="chart-bar">
+            <div class="bar-track">
+              <div class="bar-fill" style="height:${height}%"></div>
+            </div>
+            <span>${escapeHtml(item.label)}</span>
+          </div>
+        `;
+      }).join("");
+
+      refs.recentSessions.innerHTML = state.history.map((entry) => `
+        <div class="recent-card">
+          <div>
+            <strong>${escapeHtml(entry.task)}</strong>
+            <span>${escapeHtml(entry.dateLabel)} · ${escapeHtml(String(entry.duration))} min · ${escapeHtml(entry.intensity)}</span>
+            <span>${escapeHtml(entry.output)}</span>
+          </div>
+          <div class="status-tag status-${escapeHtml(entry.status.toLowerCase())}">${escapeHtml(entry.status)}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderInsights() {
+      const totalSessions = state.history.length;
+      const completedOrPartial = state.history.filter((entry) => entry.status !== "No").length;
+      const completionRate = Math.round((completedOrPartial / Math.max(1, totalSessions)) * 100);
+      const deepWorkHours = (state.history
+        .filter((entry) => entry.intensity === "Deep Work")
+        .reduce((sum, entry) => sum + entry.duration, 0) / 60).toFixed(1);
+      const suggestionTask = state.contract.taskName.trim() || "Draft the next high-friction task";
+
+      refs.insightBestTime.textContent = "9:00 AM - 11:00 AM";
+      refs.insightTopDistraction.textContent = mostBlockedDistraction();
+      refs.insightCompletionRate.textContent = `${completionRate}%`;
+      refs.insightDeepWork.textContent = `${deepWorkHours} hrs`;
+      refs.suggestedContractTitle.textContent = `${suggestionTask} before 10:00 AM`;
+      refs.suggestedContractCopy.textContent = `A ${state.contract.duration} minute ${state.contract.intensity} contract with ${state.contract.blocks.slice(0, 3).join(", ") || "Social, Video, and News"} blocked is your most repeatable win pattern right now.`;
+    }
+
+    function renderOverlay() {
+      refs.overlayTask.textContent = state.contract.taskName.trim() || "Finish the work";
+      refs.overlayTarget.textContent = state.session.interceptTarget;
+      refs.overlayTime.textContent = formatTimer(state.session.secondsRemaining);
+    }
+
+    function renderNav() {
+      refs.bottomNav.classList.toggle("show", SCREENS_WITH_NAV.has(state.screen));
+      document.querySelectorAll("[data-nav]").forEach((button) => {
+        let active = false;
+        if (button.dataset.nav === "home") active = state.screen === "welcome";
+        if (button.dataset.nav === "contract") active = ["create", "blocks", "strict", "review"].includes(state.screen);
+        if (button.dataset.nav === "dashboard") active = ["dashboard", "insights"].includes(state.screen);
+        if (button.dataset.nav === "settings") active = ["settings", "reach"].includes(state.screen);
+        button.classList.toggle("active", active);
+      });
+    }
+
+    function renderScreens() {
+      screens.forEach((screen) => {
+        screen.classList.toggle("active", screen.dataset.screen === state.screen);
+      });
+    }
+
+    function render() {
+      renderCreateScreen();
+      renderBlocks();
+      renderStrict();
+      renderReview();
+      renderActiveSession();
+      renderReflection();
+      renderComplete();
+      renderDashboard();
+      renderInsights();
+      renderOverlay();
+      renderNav();
+      renderScreens();
+      saveState();
+    }
+
+    // Event wiring
+    refs.taskNameInput.addEventListener("input", (event) => {
+      invalidateSignature();
+      state.contract.taskName = event.target.value;
+      render();
+    });
+
+    refs.commitmentInput.addEventListener("input", (event) => {
+      invalidateSignature();
+      state.contract.commitment = event.target.value;
+      render();
+    });
+
+    refs.reflectionText.addEventListener("input", (event) => {
+      state.session.reflectionText = event.target.value;
+      saveState();
+    });
+
+    refs.completionNotes.addEventListener("input", (event) => {
+      state.session.completionNotes = event.target.value;
+      saveState();
+    });
+
+    refs.producedInput.addEventListener("input", (event) => {
+      state.session.produced = event.target.value;
+      saveState();
+    });
+
+    refs.progressDraft.addEventListener("input", (event) => {
+      state.session.progressDraft = event.target.value;
+      saveState();
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-go], [data-action], [data-duration], [data-intensity], [data-block], [data-strict], [data-reason], [data-outcome], [data-attempt], [data-nav]");
+      if (!target) return;
+
+      if (target.dataset.go) {
+        const destination = target.dataset.go;
+        if (destination === "reflection" && !state.session.active) {
+          setScreen("reflection");
+        } else {
+          setScreen(destination);
+        }
+        return;
+      }
+
+      if (target.dataset.nav) {
+        const nav = target.dataset.nav;
+        if (nav === "home") setScreen("welcome");
+        if (nav === "contract") setScreen(state.session.active ? "active" : "create");
+        if (nav === "dashboard") setScreen("dashboard");
+        if (nav === "settings") setScreen("settings");
+        return;
+      }
+
+      if (target.dataset.duration) {
+        invalidateSignature();
+        state.contract.duration = Number(target.dataset.duration);
+        if (!state.session.active) {
+          state.session.secondsTotal = state.contract.duration * 60;
+          state.session.secondsRemaining = state.contract.duration * 60;
+        }
+        render();
+        return;
+      }
+
+      if (target.dataset.intensity) {
+        invalidateSignature();
+        state.contract.intensity = target.dataset.intensity;
+        render();
+        return;
+      }
+
+      if (target.dataset.block) {
+        toggleBlock(target.dataset.block);
+        return;
+      }
+
+      if (target.dataset.strict) {
+        toggleStrict(target.dataset.strict);
+        return;
+      }
+
+      if (target.dataset.reason) {
+        state.session.reflectionReason = target.dataset.reason;
+        render();
+        return;
+      }
+
+      if (target.dataset.outcome) {
+        state.session.completionStatus = target.dataset.outcome;
+        render();
+        return;
+      }
+
+      if (target.dataset.attempt) {
+        openOverlay(target.dataset.attempt);
+        return;
+      }
+
+      switch (target.dataset.action) {
+        case "begin-contract":
+          beginContractFlow();
+          break;
+        case "new-contract":
+          resetForNewContract();
+          break;
+        case "add-custom-block":
+          addCustomBlock();
+          break;
+        case "sign-contract":
+          signContract();
+          break;
+        case "start-session":
+          if (state.contract.signed) startSession();
+          break;
+        case "toggle-composer":
+          state.session.showComposer = !state.session.showComposer;
+          render();
+          break;
+        case "save-progress-note":
+          if (state.session.progressDraft.trim()) {
+            state.session.progressNotes.unshift(state.session.progressDraft.trim());
+            state.session.progressDraft = "";
+            state.session.showComposer = false;
+            render();
+          }
+          break;
+        case "distracted":
+          openOverlay("a distraction loop");
+          break;
+        case "close-overlay":
+          closeOverlay();
+          break;
+        case "return-to-focus":
+          setScreen("active");
+          break;
+        case "end-session":
+          completeSession(true, "Partially");
+          break;
+        case "complete-session":
+          completeSession(false, "Yes");
+          break;
+        case "save-session":
+          saveCompletedSession();
+          break;
+        default:
+          break;
+      }
+    });
+
+    refs.customWebsiteInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addCustomBlock();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.session.interceptOpen) {
+        closeOverlay();
+      }
+    });
+
+    updateStatusTime();
+    window.setInterval(updateStatusTime, 30000);
+
+    if (state.session.active) {
+      startTimer();
+    }
+    if (state.session.interceptOpen) {
+      refs.interceptOverlay.classList.add("show");
+      refs.interceptOverlay.setAttribute("aria-hidden", "false");
+    }
+
+    render();
+  </script>
+</body>
+</html>
