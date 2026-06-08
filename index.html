@@ -1201,29 +1201,46 @@
     }
 
     .action-grid {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
 
     .action-button {
-      min-height: 74px;
-      padding: 14px;
+      min-height: 60px;
+      padding: 16px;
       border-radius: 20px;
-      text-align: left;
+      display: grid;
+      place-items: center;
+      text-align: center;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--line-dark);
       color: var(--text-dark);
     }
 
+    .action-button.primary {
+      background: linear-gradient(135deg, rgba(36, 91, 255, 0.94), rgba(53, 108, 255, 0.98));
+      border-color: transparent;
+      box-shadow: 0 14px 28px rgba(21, 58, 160, 0.24);
+    }
+
+    .action-button.exit {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
     .action-button strong {
       display: block;
-      margin-bottom: 6px;
-      font-size: 15px;
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.02em;
     }
 
     .action-button span {
-      color: var(--muted-dark);
-      font-size: 12px;
-      line-height: 1.4;
+      display: none;
+    }
+
+    .available-access .chips {
+      gap: 8px;
     }
 
     .overlay {
@@ -1930,24 +1947,17 @@
           <section class="screen" data-screen="active">
             <div class="screen-body">
               <div class="screen-header">
-                <button class="back-button" id="activeBackButton" data-go="dashboard" aria-label="Back to dashboard"></button>
                 <div class="title-block" style="flex: 1;">
                   <div class="eyebrow">Focus Session</div>
-                  <h2 id="activeTaskTitle">Design system audit</h2>
-                  <p id="activeTaskNote">Stay with the signed task until the review screen appears.</p>
                 </div>
               </div>
 
               <div class="hero-focus">
-                <div class="status-row">
-                  <div class="flag info" id="activeLockBadge">Strong</div>
-                  <div class="flag success" id="activeBreakPlan">5 min break queued</div>
-                </div>
                 <div class="focus-meta">
                   <div>
                     <div class="section-label">Time remaining</div>
                     <strong id="activeTimerLabel">24:57</strong>
-                    <p class="copy" id="activeTimerMeta">Pause policy: one pause allowed in Strong mode.</p>
+                    <p class="copy" id="activeTimerMeta">1 emergency exit left today.</p>
                   </div>
                   <div class="ring-shell">
                     <svg viewBox="0 0 120 120">
@@ -1970,49 +1980,19 @@
                 </div>
               </div>
 
-              <div class="section-card">
-                <div class="section-title">Blocked right now</div>
-                <div class="chips" id="activeBlockedChips"></div>
-              </div>
-
-              <div class="section-card">
-                <div class="section-title">Still available</div>
+              <div class="section-card available-access">
+                <div class="section-title">Available for emergencies</div>
                 <div class="chips" id="activeAllowlistChips"></div>
-                <p class="helper">Emergency apps remain available even in stricter sessions.</p>
+                <p class="helper">Phone, calendar, and other approved tools stay reachable without leaving the session.</p>
               </div>
 
               <div class="action-grid">
-                <button class="action-button" data-action="toggle-pause">
-                  <strong id="pauseActionLabel">Pause focus</strong>
-                  <span id="pauseActionCopy">One pause allowed in Strong mode.</span>
-                </button>
-                <button class="action-button" data-action="open-reflection">
+                <button class="action-button exit" data-action="open-reflection">
                   <strong>Emergency exit</strong>
-                  <span>Timed delay and reason prompt before ending.</span>
                 </button>
-                <button class="action-button" data-action="toggle-progress-composer">
-                  <strong>Log progress</strong>
-                  <span>Capture proof of work without leaving the session.</span>
+                <button class="action-button primary" data-action="complete-session">
+                  <strong>Done early</strong>
                 </button>
-                <button class="action-button" data-action="complete-session">
-                  <strong>Complete session</strong>
-                  <span>Jump to review when the work is done for demo purposes.</span>
-                </button>
-              </div>
-
-              <div class="card hidden" id="progressComposer">
-                <div class="field">
-                  <label for="progressNoteInput">Progress note</label>
-                  <textarea id="progressNoteInput" placeholder="Finished the audit pass, listed the interaction gaps, and queued the next two fixes."></textarea>
-                </div>
-                <button class="secondary-button" data-action="save-progress-note">Save progress note</button>
-              </div>
-
-              <div class="list-grid" id="progressNoteList"></div>
-
-              <div class="section-card">
-                <div class="section-title">Simulated blocked attempts</div>
-                <div class="list-grid" id="blockedAttemptButtons"></div>
               </div>
             </div>
           </section>
@@ -2375,10 +2355,10 @@
         </div>
       </div>
 
-      <aside class="desktop-controls" aria-label="Prototype desktop controls">
+      <aside class="desktop-controls" aria-label="Outside app controls">
         <div class="desktop-card">
-          <h3>Prototype controls</h3>
-          <p>Relaunch the app to the quiet start screen or simulate opening apps from outside the phone.</p>
+          <h3>Outside the app</h3>
+          <p>Use these controls to relaunch the app or simulate opening apps from outside the phone.</p>
         </div>
 
         <div class="desktop-actions">
@@ -2388,11 +2368,13 @@
             <button class="desktop-button" data-action="open-external-app" data-external-app="YouTube">YouTube</button>
             <button class="desktop-button" data-action="open-external-app" data-external-app="News site">News</button>
             <button class="desktop-button" data-action="open-external-app" data-external-app="Messages">Messages</button>
+            <button class="desktop-button" data-action="open-external-app" data-external-app="Phone">Phone</button>
+            <button class="desktop-button" data-action="open-external-app" data-external-app="Calendar">Calendar</button>
           </div>
         </div>
 
         <div class="desktop-card desktop-status" id="externalStatus">
-          Use these controls to test reopening the app or opening a distraction from outside the phone.
+          Waiting for an outside-app action.
         </div>
       </aside>
     </div>
@@ -2476,7 +2458,7 @@
           upgradeHint: '',
           deleteConfirm: false,
           selectedLaunchContractId: 'design-audit',
-          externalStatus: 'Use these controls to test reopening the app or opening a distraction from outside the phone.'
+          externalStatus: 'Waiting for an outside-app action.'
         },
         permissions: {
           android: 'Ready',
@@ -2750,23 +2732,11 @@
       reviewCommitment: document.getElementById('reviewCommitment'),
       signContractButton: document.getElementById('signContractButton'),
       startSessionButton: document.getElementById('startSessionButton'),
-      activeTaskTitle: document.getElementById('activeTaskTitle'),
-      activeTaskNote: document.getElementById('activeTaskNote'),
-      activeBackButton: document.getElementById('activeBackButton'),
-      activeLockBadge: document.getElementById('activeLockBadge'),
-      activeBreakPlan: document.getElementById('activeBreakPlan'),
       activeTimerLabel: document.getElementById('activeTimerLabel'),
       activeTimerMeta: document.getElementById('activeTimerMeta'),
       activeRing: document.getElementById('activeRing'),
       activeRingTime: document.getElementById('activeRingTime'),
-      activeBlockedChips: document.getElementById('activeBlockedChips'),
       activeAllowlistChips: document.getElementById('activeAllowlistChips'),
-      pauseActionLabel: document.getElementById('pauseActionLabel'),
-      pauseActionCopy: document.getElementById('pauseActionCopy'),
-      progressComposer: document.getElementById('progressComposer'),
-      progressNoteInput: document.getElementById('progressNoteInput'),
-      progressNoteList: document.getElementById('progressNoteList'),
-      blockedAttemptButtons: document.getElementById('blockedAttemptButtons'),
       reflectionDelayLabel: document.getElementById('reflectionDelayLabel'),
       reflectionBudgetLabel: document.getElementById('reflectionBudgetLabel'),
       reflectionReasons: document.getElementById('reflectionReasons'),
@@ -3604,38 +3574,12 @@
     }
 
     function renderActive() {
-      const activeNote = state.contract.taskNote.trim() || 'Task text remains visible during the entire focus block.';
-      refs.activeTaskTitle.textContent = state.contract.taskName.trim() || 'Untitled focus session';
-      refs.activeTaskNote.textContent = isIntenseLockoutActive()
-        ? activeNote + ' Dashboard stays locked during this session so the focus view is the only thing competing for attention.'
-        : activeNote;
-      refs.activeBackButton.disabled = isIntenseLockoutActive();
-      refs.activeBackButton.style.visibility = isIntenseLockoutActive() ? 'hidden' : 'visible';
-      refs.activeLockBadge.textContent = state.contract.lockLevel;
-      refs.activeBreakPlan.textContent = state.contract.breakDuration + ' min break queued';
       refs.activeTimerLabel.textContent = formatTimer(state.session.secondsRemaining);
       refs.activeRingTime.textContent = formatTimer(state.session.secondsRemaining);
-      refs.activeTimerMeta.textContent = pausePolicyText() + ' Emergency exits left today: ' + state.session.unlockBudgetRemaining + '.';
-      refs.activeBlockedChips.innerHTML = state.contract.blocks.map((block) => `<span class="chip active">${escapeHtml(block)}</span>`).join('');
-      refs.activeAllowlistChips.innerHTML = state.contract.allowlistApps.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('');
-      refs.pauseActionLabel.textContent = state.session.paused ? 'Resume focus' : 'Pause focus';
-      refs.pauseActionCopy.textContent = state.session.paused
-        ? 'Resume continues the same contract timer.'
-        : pausePolicyText();
-      refs.progressComposer.classList.toggle('hidden', !state.session.showComposer);
-      refs.progressNoteInput.value = state.session.progressDraft;
-      refs.progressNoteList.innerHTML = state.session.progressNotes.map((note) => `
-        <div class="feature-card">
-          <strong>Progress logged</strong>
-          <span>${escapeHtml(note)}</span>
-        </div>
-      `).join('');
-      refs.blockedAttemptButtons.innerHTML = blockedAttemptTargets().map((target) => `
-        <button class="feature-card" data-attempt-target="${escapeHtml(target)}">
-          <strong>Try opening ${escapeHtml(target)}</strong>
-          <span>Simulate the intercept screen and increase blocked attempt count.</span>
-        </button>
-      `).join('');
+      refs.activeTimerMeta.textContent = state.session.unlockBudgetRemaining + ' emergency exit' + (state.session.unlockBudgetRemaining === 1 ? '' : 's') + ' left today.';
+      refs.activeAllowlistChips.innerHTML = state.contract.allowlistApps.length
+        ? state.contract.allowlistApps.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('')
+        : '<span class="chip">No emergency apps configured</span>';
       updateRing(refs.activeRing, state.session.secondsTotal, state.session.secondsRemaining);
     }
 
@@ -3835,11 +3779,6 @@
       render();
     });
 
-    refs.progressNoteInput.addEventListener('input', (event) => {
-      state.session.progressDraft = event.target.value;
-      saveState();
-    });
-
     refs.reflectionText.addEventListener('input', (event) => {
       state.session.reflectionText = event.target.value;
       saveState();
@@ -3863,7 +3802,7 @@
     });
 
     document.addEventListener('click', (event) => {
-      const target = event.target.closest('[data-go], [data-action], [data-suggested-task], [data-duration-choice], [data-lock-level], [data-block], [data-allowlist-template], [data-strict-key], [data-reflection-reason], [data-review-outcome], [data-attempt-target], [data-plan-option], [data-nav], [data-launch-contract]');
+      const target = event.target.closest('[data-go], [data-action], [data-suggested-task], [data-duration-choice], [data-lock-level], [data-block], [data-allowlist-template], [data-strict-key], [data-reflection-reason], [data-review-outcome], [data-plan-option], [data-nav], [data-launch-contract]');
       if (!target) return;
 
       if (target.dataset.go) {
@@ -3965,21 +3904,6 @@
           break;
         case 'start-session':
           if (state.contract.signed) startSession();
-          break;
-        case 'toggle-pause':
-          togglePause();
-          break;
-        case 'toggle-progress-composer':
-          state.session.showComposer = !state.session.showComposer;
-          render();
-          break;
-        case 'save-progress-note':
-          if (state.session.progressDraft.trim()) {
-            state.session.progressNotes.unshift(state.session.progressDraft.trim());
-            state.session.progressDraft = '';
-            state.session.showComposer = false;
-            render();
-          }
           break;
         case 'close-overlay':
           closeOverlay();
