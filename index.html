@@ -1229,20 +1229,41 @@
       gap: 10px;
     }
 
+    .launch-shell {
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .launch-copy {
+      display: grid;
+      gap: 6px;
+    }
+
+    .launch-copy h1 {
+      font-size: 30px;
+    }
+
+    .launch-copy p {
+      margin: 0;
+      font-size: 13px;
+    }
+
     .preset-card {
       width: 100%;
       text-align: left;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.82);
     }
 
     .preset-card .status-row {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .preset-card .contract-title {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 18px;
       letter-spacing: -0.03em;
       line-height: 1.06;
     }
@@ -1251,7 +1272,34 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
+    }
+
+    .preset-summary {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .phone-screen.dark-shell .preset-summary {
+      color: var(--muted-dark);
+    }
+
+    .launch-link {
+      min-height: 42px;
+      padding: 0;
+      justify-content: flex-start;
+      border-radius: 0;
+      background: none;
+      border: 0;
+      box-shadow: none;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .launch-link:hover {
+      transform: none;
+      color: var(--text);
     }
 
     .outcome-tag {
@@ -1328,32 +1376,18 @@
 
         <main class="screen-stack">
           <section class="screen active" data-screen="welcome">
-            <div class="screen-body">
-              <div class="eyebrow">Last used contracts</div>
-              <div class="title-block">
-                <h1>Pick a recent contract and start.</h1>
-                <p>The app opens like a real session launcher: choose one of the last three contracts, start it directly, or drop into the dashboard.</p>
+            <div class="screen-body launch-shell">
+              <div class="eyebrow">Focus Contract</div>
+              <div class="title-block launch-copy">
+                <h1>Start a recent lockout.</h1>
+                <p>Select one of the last three contracts and start with similar settings immediately.</p>
               </div>
 
-              <div class="metric-grid">
-                <div class="metric-card">
-                  <span>Today</span>
-                  <strong id="welcomeFocusMinutes">225</strong>
-                </div>
-                <div class="metric-card">
-                  <span>Streak</span>
-                  <strong id="welcomeStreakDays">12 days</strong>
-                </div>
-              </div>
-
-              <div class="section-card">
-                <div class="section-title">Recent contracts</div>
-                <div class="preset-list" id="recentContractList"></div>
-              </div>
+              <div class="preset-list" id="recentContractList"></div>
 
               <div class="button-stack">
                 <button class="button" id="launchStartButton" data-action="start-selected-contract">Start contract</button>
-                <button class="secondary-button" data-go="dashboard">Open dashboard</button>
+                <button class="launch-link" data-go="dashboard">Open dashboard</button>
               </div>
             </div>
           </section>
@@ -2328,8 +2362,6 @@
     const refs = {
       phoneScreen: document.getElementById('phoneScreen'),
       statusTime: document.getElementById('statusTime'),
-      welcomeFocusMinutes: document.getElementById('welcomeFocusMinutes'),
-      welcomeStreakDays: document.getElementById('welcomeStreakDays'),
       recentContractList: document.getElementById('recentContractList'),
       launchStartButton: document.getElementById('launchStartButton'),
       permissionChecklist: document.getElementById('permissionChecklist'),
@@ -3044,8 +3076,6 @@
       if (!state.recentContracts.length) {
         refs.recentContractList.innerHTML = '<span class="helper">No recent contracts yet. Open the dashboard to create one.</span>';
         refs.launchStartButton.disabled = true;
-        refs.welcomeFocusMinutes.textContent = state.metrics.todayFocus;
-        refs.welcomeStreakDays.textContent = state.metrics.streak + ' days';
         return;
       }
 
@@ -3053,8 +3083,6 @@
         state.ui.selectedLaunchContractId = state.recentContracts[0].id;
       }
 
-      refs.welcomeFocusMinutes.textContent = state.metrics.todayFocus;
-      refs.welcomeStreakDays.textContent = state.metrics.streak + ' days';
       refs.recentContractList.innerHTML = state.recentContracts.slice(0, 3).map((contract) => `
         <button class="preset-card${state.ui.selectedLaunchContractId === contract.id ? ' active' : ''}" data-launch-contract="${escapeHtml(contract.id)}">
           <div class="status-row">
@@ -3062,10 +3090,9 @@
             <span class="micro-copy">${escapeHtml(formatRelativeTime(contract.lastUsedAt))}</span>
           </div>
           <span class="contract-title">${escapeHtml(contract.taskName)}</span>
-          <span>${escapeHtml(contract.taskNote || 'No task note saved.')}</span>
+          <span class="preset-summary">${escapeHtml(contract.duration + ' min focus')} · ${escapeHtml(contract.breakDuration + ' min break')} · ${escapeHtml((contract.blocks || []).length + ' blocks')}</span>
           <div class="preset-meta">
-            <span class="chip">${escapeHtml(contract.duration + ' min focus')}</span>
-            <span class="chip">${escapeHtml(contract.breakDuration + ' min break')}</span>
+            <span class="chip">${escapeHtml(contract.allowlistTemplate)}</span>
             <span class="chip">${escapeHtml((contract.blocks || []).slice(0, 2).join(' + ') || 'No blocks')}</span>
           </div>
         </button>
