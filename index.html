@@ -513,11 +513,18 @@
 
     .screen-header .title-block {
       width: 100%;
+      padding-top: 28px;
     }
 
     .screen-header .title-block .eyebrow,
     .screen-header .title-block .header-bar {
-      margin: 0 54px 12px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: calc(100% - 108px);
+      margin: 0;
       text-align: center;
       color: var(--text);
       font-size: 17px;
@@ -1060,7 +1067,7 @@
       min-height: 24px;
       padding: 4px 10px;
       border-radius: 8px;
-      border-left: 3px solid currentColor;
+      border: 1px solid transparent;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
@@ -1070,24 +1077,28 @@
     .flag.info,
     .status-badge.info {
       background: rgba(36, 91, 255, 0.08);
+      border-color: rgba(36, 91, 255, 0.14);
       color: var(--blue);
     }
 
     .flag.success,
     .status-badge.success {
       background: rgba(28, 174, 113, 0.08);
+      border-color: rgba(28, 174, 113, 0.14);
       color: var(--success);
     }
 
     .flag.warning,
     .status-badge.warning {
       background: rgba(255, 182, 72, 0.1);
+      border-color: rgba(255, 182, 72, 0.16);
       color: #ae6d00;
     }
 
     .flag.danger,
     .status-badge.danger {
       background: rgba(240, 92, 92, 0.1);
+      border-color: rgba(240, 92, 92, 0.16);
       color: var(--danger);
     }
 
