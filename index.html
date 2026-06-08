@@ -1728,7 +1728,7 @@
           <section class="screen" data-screen="active">
             <div class="screen-body">
               <div class="screen-header">
-                <button class="back-button" data-go="dashboard" aria-label="Back to dashboard"></button>
+                <button class="back-button" id="activeBackButton" data-go="dashboard" aria-label="Back to dashboard"></button>
                 <div class="title-block" style="flex: 1;">
                   <div class="eyebrow">Focus Session</div>
                   <h2 id="activeTaskTitle">Design system audit</h2>
@@ -2550,6 +2550,7 @@
       startSessionButton: document.getElementById('startSessionButton'),
       activeTaskTitle: document.getElementById('activeTaskTitle'),
       activeTaskNote: document.getElementById('activeTaskNote'),
+      activeBackButton: document.getElementById('activeBackButton'),
       activeLockBadge: document.getElementById('activeLockBadge'),
       activeBreakPlan: document.getElementById('activeBreakPlan'),
       activeTimerLabel: document.getElementById('activeTimerLabel'),
@@ -2694,6 +2695,16 @@
       return current ? current.pauseRule : 'Pause allowed any time.';
     }
 
+    function isIntenseLockoutActive() {
+      return state.session.active && (state.contract.lockLevel === 'Strong' || state.contract.lockLevel === 'Strict');
+    }
+
+    function normalizeScreenForLockout(screenName) {
+      if (!isIntenseLockoutActive()) return screenName;
+      if (screenName === 'active' || screenName === 'reflection') return screenName;
+      return 'active';
+    }
+
     function blockedAttemptTargets() {
       const mapped = state.contract.blocks.map((block) => {
         const match = BLOCK_CATALOG.find((item) => item.key === block);
@@ -2730,7 +2741,7 @@
     }
 
     function setScreen(screenName) {
-      state.screen = screenName;
+      state.screen = normalizeScreenForLockout(screenName);
       render();
     }
 
@@ -3390,8 +3401,13 @@
     }
 
     function renderActive() {
+      const activeNote = state.contract.taskNote.trim() || 'Task text remains visible during the entire focus block.';
       refs.activeTaskTitle.textContent = state.contract.taskName.trim() || 'Untitled focus session';
-      refs.activeTaskNote.textContent = state.contract.taskNote.trim() || 'Task text remains visible during the entire focus block.';
+      refs.activeTaskNote.textContent = isIntenseLockoutActive()
+        ? activeNote + ' Dashboard stays locked during this session so the focus view is the only thing competing for attention.'
+        : activeNote;
+      refs.activeBackButton.disabled = isIntenseLockoutActive();
+      refs.activeBackButton.style.visibility = isIntenseLockoutActive() ? 'hidden' : 'visible';
       refs.activeLockBadge.textContent = state.contract.lockLevel;
       refs.activeBreakPlan.textContent = state.contract.breakDuration + ' min break queued';
       refs.activeTimerLabel.textContent = formatTimer(state.session.secondsRemaining);
