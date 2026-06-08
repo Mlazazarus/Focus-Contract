@@ -748,6 +748,7 @@
     .toggle-card,
     .timeline-card,
     .feature-card,
+    .preset-card,
     .mode-card,
     .permission-card,
     .privacy-card,
@@ -766,6 +767,7 @@
     .phone-screen.dark-shell .toggle-card,
     .phone-screen.dark-shell .timeline-card,
     .phone-screen.dark-shell .feature-card,
+    .phone-screen.dark-shell .preset-card,
     .phone-screen.dark-shell .mode-card,
     .phone-screen.dark-shell .permission-card,
     .phone-screen.dark-shell .privacy-card,
@@ -778,6 +780,7 @@
 
     .choice-card.active,
     .block-card.active,
+    .preset-card.active,
     .mode-card.active {
       border-color: rgba(36, 91, 255, 0.2);
       background: #f5f9ff;
@@ -785,6 +788,7 @@
 
     .phone-screen.dark-shell .choice-card.active,
     .phone-screen.dark-shell .block-card.active,
+    .phone-screen.dark-shell .preset-card.active,
     .phone-screen.dark-shell .mode-card.active {
       background: rgba(255, 255, 255, 0.12);
       border-color: rgba(255, 255, 255, 0.18);
@@ -795,6 +799,7 @@
     .toggle-card strong,
     .timeline-card strong,
     .feature-card strong,
+    .preset-card strong,
     .mode-card strong,
     .permission-card strong,
     .privacy-card strong,
@@ -810,6 +815,7 @@
     .toggle-card span,
     .timeline-card span,
     .feature-card span,
+    .preset-card span,
     .mode-card span,
     .permission-card span,
     .privacy-card span,
@@ -826,6 +832,7 @@
     .phone-screen.dark-shell .toggle-card span,
     .phone-screen.dark-shell .timeline-card span,
     .phone-screen.dark-shell .feature-card span,
+    .phone-screen.dark-shell .preset-card span,
     .phone-screen.dark-shell .mode-card span,
     .phone-screen.dark-shell .permission-card span,
     .phone-screen.dark-shell .privacy-card span,
@@ -1217,6 +1224,36 @@
       align-items: flex-start;
     }
 
+    .preset-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preset-card {
+      width: 100%;
+      text-align: left;
+    }
+
+    .preset-card .status-row {
+      margin-bottom: 8px;
+    }
+
+    .preset-card .contract-title {
+      display: block;
+      margin-bottom: 6px;
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: -0.03em;
+      line-height: 1.06;
+    }
+
+    .preset-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
     .outcome-tag {
       flex: 0 0 auto;
       min-width: 88px;
@@ -1292,54 +1329,31 @@
         <main class="screen-stack">
           <section class="screen active" data-screen="welcome">
             <div class="screen-body">
-              <div class="eyebrow">Focus Contract</div>
+              <div class="eyebrow">Last used contracts</div>
               <div class="title-block">
-                <h1>Task-linked focus with real blocking.</h1>
-                <p>A lighter, cleaner prototype for a commitment-based focus app that turns the phone into a controlled work tool before a session begins.</p>
+                <h1>Pick a recent contract and start.</h1>
+                <p>The app opens like a real session launcher: choose one of the last three contracts, start it directly, or drop into the dashboard.</p>
               </div>
 
-              <div class="hero-card">
-                <div class="section-label">Design direction</div>
-                <h3>White workspace surfaces, strong blue actions, dark focus mode only when the lock is active.</h3>
-                <p class="copy">The product reads like a serious utility on setup screens, then becomes visibly more protective during an active focus session.</p>
-                <div class="metric-grid">
-                  <div class="metric-card">
-                    <span>Task contract</span>
-                    <strong>Required</strong>
-                  </div>
-                  <div class="metric-card">
-                    <span>Free blocking</span>
-                    <strong>Real</strong>
-                  </div>
-                  <div class="metric-card">
-                    <span>Earned break</span>
-                    <strong>Bounded</strong>
-                  </div>
-                  <div class="metric-card">
-                    <span>Privacy</span>
-                    <strong>Local-first</strong>
-                  </div>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <span>Today</span>
+                  <strong id="welcomeFocusMinutes">225</strong>
                 </div>
+                <div class="metric-card">
+                  <span>Streak</span>
+                  <strong id="welcomeStreakDays">12 days</strong>
+                </div>
+              </div>
+
+              <div class="section-card">
+                <div class="section-title">Recent contracts</div>
+                <div class="preset-list" id="recentContractList"></div>
               </div>
 
               <div class="button-stack">
-                <button class="button" data-go="onboarding">Start a focus contract</button>
-                <button class="secondary-button" data-go="dashboard">View demo dashboard</button>
-              </div>
-
-              <div class="list-grid">
-                <div class="feature-card">
-                  <strong>Task-linked focus</strong>
-                  <span>Every session starts with a named task, optional note, and a visible commitment.</span>
-                </div>
-                <div class="feature-card">
-                  <strong>App and website blocking</strong>
-                  <span>Free users still get limited real blocking. Pro expands the perimeter, strictness, and insight depth.</span>
-                </div>
-                <div class="feature-card">
-                  <strong>Earned breaks and honest review</strong>
-                  <span>The loop ends with an outcome, blocked attempt count, and a controlled break instead of just elapsed time.</span>
-                </div>
+                <button class="button" id="launchStartButton" data-action="start-selected-contract">Start contract</button>
+                <button class="secondary-button" data-go="dashboard">Open dashboard</button>
               </div>
             </div>
           </section>
@@ -2107,7 +2121,8 @@
         },
         ui: {
           upgradeHint: '',
-          deleteConfirm: false
+          deleteConfirm: false,
+          selectedLaunchContractId: 'design-audit'
         },
         permissions: {
           android: 'Ready',
@@ -2178,6 +2193,56 @@
           completionRate: 84,
           streak: 12
         },
+        recentContracts: [
+          {
+            id: 'design-audit',
+            taskName: 'Design system audit',
+            taskNote: 'Finish the interaction review and queue the next two fixes.',
+            durationChoice: '25',
+            duration: 25,
+            breakDuration: 5,
+            longBreakDuration: 15,
+            cyclesUntilLongBreak: 4,
+            lockLevel: 'Strong',
+            blocks: ['Social', 'Video'],
+            allowlistTemplate: 'Work',
+            commitment: 'I will finish the audit pass before checking anything else.',
+            plan: 'Free',
+            lastUsedAt: Date.now() - (12 * 60 * 1000)
+          },
+          {
+            id: 'onboarding-copy',
+            taskName: 'Revise onboarding copy',
+            taskNote: 'Tighten the permission explanations and the iOS limitation note.',
+            durationChoice: '50',
+            duration: 50,
+            breakDuration: 8,
+            longBreakDuration: 20,
+            cyclesUntilLongBreak: 4,
+            lockLevel: 'Strong',
+            blocks: ['Social', 'News', 'reddit.com'],
+            allowlistTemplate: 'Work',
+            commitment: 'I will finish the copy pass before checking other workstreams.',
+            plan: 'Free',
+            lastUsedAt: Date.now() - (4 * 60 * 60 * 1000)
+          },
+          {
+            id: 'study-sprint',
+            taskName: 'Math practice set',
+            taskNote: 'Complete the next problem cluster without switching tasks.',
+            durationChoice: '50',
+            duration: 50,
+            breakDuration: 10,
+            longBreakDuration: 20,
+            cyclesUntilLongBreak: 3,
+            lockLevel: 'Strict',
+            blocks: ['Social', 'Video', 'Games', 'Shopping'],
+            allowlistTemplate: 'Study',
+            commitment: 'I will stay with the problem set until I can honestly review the outcome.',
+            plan: 'Pro',
+            lastUsedAt: Date.now() - (26 * 60 * 60 * 1000)
+          }
+        ],
         history: [
           {
             task: 'Design system audit',
@@ -2237,6 +2302,7 @@
         session: { ...base.session, ...(saved.session || {}) },
         breakSession: { ...base.breakSession, ...(saved.breakSession || {}) },
         metrics: { ...base.metrics, ...(saved.metrics || {}) },
+        recentContracts: Array.isArray(saved.recentContracts) && saved.recentContracts.length ? saved.recentContracts : base.recentContracts,
         history: Array.isArray(saved.history) && saved.history.length ? saved.history : base.history,
         blockCounts: { ...base.blockCounts, ...(saved.blockCounts || {}) },
         chart: Array.isArray(saved.chart) && saved.chart.length === 7 ? saved.chart : base.chart
@@ -2262,6 +2328,10 @@
     const refs = {
       phoneScreen: document.getElementById('phoneScreen'),
       statusTime: document.getElementById('statusTime'),
+      welcomeFocusMinutes: document.getElementById('welcomeFocusMinutes'),
+      welcomeStreakDays: document.getElementById('welcomeStreakDays'),
+      recentContractList: document.getElementById('recentContractList'),
+      launchStartButton: document.getElementById('launchStartButton'),
       permissionChecklist: document.getElementById('permissionChecklist'),
       testBlockStatus: document.getElementById('testBlockStatus'),
       taskNameInput: document.getElementById('taskNameInput'),
@@ -2408,6 +2478,32 @@
       return unique.slice(0, 4);
     }
 
+    function formatRelativeTime(timestamp) {
+      const minutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return minutes + ' min ago';
+      const hours = Math.round(minutes / 60);
+      if (hours < 24) return hours + ' hr' + (hours === 1 ? '' : 's') + ' ago';
+      const days = Math.round(hours / 24);
+      return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+    }
+
+    function contractSignature(contract) {
+      return [
+        contract.taskName,
+        contract.duration,
+        contract.breakDuration,
+        contract.longBreakDuration,
+        contract.cyclesUntilLongBreak,
+        contract.lockLevel,
+        (contract.blocks || []).join(',')
+      ].join('|');
+    }
+
+    function selectedLaunchContract() {
+      return state.recentContracts.find((item) => item.id === state.ui.selectedLaunchContractId) || state.recentContracts[0] || null;
+    }
+
     function invalidateSignature() {
       state.contract.signed = false;
       state.contract.signedAt = '';
@@ -2471,6 +2567,65 @@
       setScreen('create');
     }
 
+    function selectLaunchContract(contractId) {
+      state.ui.selectedLaunchContractId = contractId;
+      render();
+    }
+
+    function applyContractPreset(contract) {
+      if (!contract) return;
+      state.plan = contract.plan || (contract.lockLevel === 'Strict' ? 'Pro' : 'Free');
+      state.contract = {
+        ...state.contract,
+        taskName: contract.taskName,
+        taskNote: contract.taskNote || '',
+        durationChoice: contract.durationChoice || String(contract.duration),
+        duration: contract.duration,
+        breakDuration: contract.breakDuration,
+        longBreakDuration: contract.longBreakDuration,
+        cyclesUntilLongBreak: contract.cyclesUntilLongBreak,
+        lockLevel: contract.lockLevel,
+        blocks: Array.isArray(contract.blocks) ? contract.blocks.slice() : [],
+        allowlistTemplate: contract.allowlistTemplate || 'Work',
+        commitment: contract.commitment || state.contract.commitment,
+        signed: true,
+        signedAt: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      };
+      recomputeDerivedContract();
+    }
+
+    function rememberCurrentContract() {
+      const currentSignature = contractSignature({
+        taskName: state.contract.taskName,
+        duration: state.contract.duration,
+        breakDuration: state.contract.breakDuration,
+        longBreakDuration: state.contract.longBreakDuration,
+        cyclesUntilLongBreak: state.contract.cyclesUntilLongBreak,
+        lockLevel: state.contract.lockLevel,
+        blocks: state.contract.blocks
+      });
+      const existing = state.recentContracts.find((item) => contractSignature(item) === currentSignature);
+      const recentContract = {
+        id: existing ? existing.id : ('contract-' + Date.now()),
+        taskName: state.contract.taskName,
+        taskNote: state.contract.taskNote,
+        durationChoice: state.contract.durationChoice,
+        duration: state.contract.duration,
+        breakDuration: state.contract.breakDuration,
+        longBreakDuration: state.contract.longBreakDuration,
+        cyclesUntilLongBreak: state.contract.cyclesUntilLongBreak,
+        lockLevel: state.contract.lockLevel,
+        blocks: state.contract.blocks.slice(),
+        allowlistTemplate: state.contract.allowlistTemplate,
+        commitment: state.contract.commitment,
+        plan: state.plan,
+        lastUsedAt: Date.now()
+      };
+      const remaining = state.recentContracts.filter((item) => contractSignature(item) !== currentSignature);
+      state.recentContracts = [recentContract, ...remaining].slice(0, 3);
+      state.ui.selectedLaunchContractId = recentContract.id;
+    }
+
     function resetForNewContract(prefillTask) {
       const base = buildDefaultState();
       const taskName = prefillTask || '';
@@ -2497,6 +2652,13 @@
       state.breakSession = { ...base.breakSession };
       recomputeDerivedContract();
       setScreen('create');
+    }
+
+    function startSelectedContract() {
+      const contract = selectedLaunchContract();
+      if (!contract) return;
+      applyContractPreset(contract);
+      startSession();
     }
 
     function updateDurationChoice(choice) {
@@ -2597,6 +2759,7 @@
 
     function startSession() {
       recomputeDerivedContract();
+      rememberCurrentContract();
       state.breakSession.active = false;
       state.session.active = true;
       state.session.paused = false;
@@ -2877,6 +3040,39 @@
       refs.testBlockStatus.textContent = state.onboarding.testPassed ? 'Passed' : 'Pending';
     }
 
+    function renderWelcome() {
+      if (!state.recentContracts.length) {
+        refs.recentContractList.innerHTML = '<span class="helper">No recent contracts yet. Open the dashboard to create one.</span>';
+        refs.launchStartButton.disabled = true;
+        refs.welcomeFocusMinutes.textContent = state.metrics.todayFocus;
+        refs.welcomeStreakDays.textContent = state.metrics.streak + ' days';
+        return;
+      }
+
+      if (!selectedLaunchContract()) {
+        state.ui.selectedLaunchContractId = state.recentContracts[0].id;
+      }
+
+      refs.welcomeFocusMinutes.textContent = state.metrics.todayFocus;
+      refs.welcomeStreakDays.textContent = state.metrics.streak + ' days';
+      refs.recentContractList.innerHTML = state.recentContracts.slice(0, 3).map((contract) => `
+        <button class="preset-card${state.ui.selectedLaunchContractId === contract.id ? ' active' : ''}" data-launch-contract="${escapeHtml(contract.id)}">
+          <div class="status-row">
+            <div class="flag info">${escapeHtml(contract.lockLevel)}</div>
+            <span class="micro-copy">${escapeHtml(formatRelativeTime(contract.lastUsedAt))}</span>
+          </div>
+          <span class="contract-title">${escapeHtml(contract.taskName)}</span>
+          <span>${escapeHtml(contract.taskNote || 'No task note saved.')}</span>
+          <div class="preset-meta">
+            <span class="chip">${escapeHtml(contract.duration + ' min focus')}</span>
+            <span class="chip">${escapeHtml(contract.breakDuration + ' min break')}</span>
+            <span class="chip">${escapeHtml((contract.blocks || []).slice(0, 2).join(' + ') || 'No blocks')}</span>
+          </div>
+        </button>
+      `).join('');
+      refs.launchStartButton.disabled = false;
+    }
+
     function renderCreate() {
       refs.taskNameInput.value = state.contract.taskName;
       refs.taskNoteInput.value = state.contract.taskNote;
@@ -3121,7 +3317,7 @@
       document.querySelectorAll('[data-nav]').forEach((button) => {
         const nav = button.dataset.nav;
         let active = false;
-        if (nav === 'home') active = state.screen === 'dashboard';
+        if (nav === 'home') active = state.screen === 'welcome';
         if (nav === 'contract') active = ['create', 'blocks', 'strict', 'review'].includes(state.screen);
         if (nav === 'insights') active = state.screen === 'insights';
         if (nav === 'settings') active = ['settings', 'reach'].includes(state.screen);
@@ -3138,6 +3334,7 @@
     function render() {
       syncTimers();
       recomputeDerivedContract();
+      renderWelcome();
       renderPermissions();
       renderCreate();
       renderBlocks();
@@ -3229,7 +3426,7 @@
     });
 
     document.addEventListener('click', (event) => {
-      const target = event.target.closest('[data-go], [data-action], [data-suggested-task], [data-duration-choice], [data-lock-level], [data-block], [data-allowlist-template], [data-strict-key], [data-reflection-reason], [data-review-outcome], [data-attempt-target], [data-plan-option], [data-nav]');
+      const target = event.target.closest('[data-go], [data-action], [data-suggested-task], [data-duration-choice], [data-lock-level], [data-block], [data-allowlist-template], [data-strict-key], [data-reflection-reason], [data-review-outcome], [data-attempt-target], [data-plan-option], [data-nav], [data-launch-contract]');
       if (!target) return;
 
       if (target.dataset.go) {
@@ -3238,7 +3435,7 @@
       }
 
       if (target.dataset.nav) {
-        if (target.dataset.nav === 'home') setScreen('dashboard');
+        if (target.dataset.nav === 'home') setScreen('welcome');
         if (target.dataset.nav === 'contract') setScreen(state.session.active ? 'active' : 'create');
         if (target.dataset.nav === 'insights') setScreen('insights');
         if (target.dataset.nav === 'settings') setScreen('settings');
@@ -3299,7 +3496,15 @@
         return;
       }
 
+      if (target.dataset.launchContract) {
+        selectLaunchContract(target.dataset.launchContract);
+        return;
+      }
+
       switch (target.dataset.action) {
+        case 'start-selected-contract':
+          startSelectedContract();
+          break;
         case 'run-test-block':
           runTestBlock();
           break;
