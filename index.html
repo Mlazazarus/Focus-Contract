@@ -440,49 +440,31 @@
       min-height: 100%;
     }
 
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      align-self: flex-start;
-      min-height: 30px;
-      padding: 0 12px;
-      border-radius: 999px;
-      background: rgba(36, 91, 255, 0.08);
-      border: 1px solid rgba(36, 91, 255, 0.12);
-      color: var(--blue);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .phone-screen.dark-shell .eyebrow {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.12);
-      color: #d5e5ff;
-    }
-
+    .eyebrow,
     .header-bar {
-      display: flex;
-      align-items: center;
+      display: block;
       width: 100%;
-      min-height: 38px;
-      margin-bottom: 10px;
-      padding: 0 14px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
-      border: 1px solid var(--line);
+      margin: 0 0 10px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
       color: var(--blue-strong);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      box-shadow: 0 10px 24px rgba(31, 63, 135, 0.06);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      line-height: 1.3;
+    }
+
+    .phone-screen.dark-shell .eyebrow,
+    .phone-screen.dark-shell .header-bar {
+      color: #dce8ff;
     }
 
     .header-bar span {
-      white-space: nowrap;
+      white-space: normal;
     }
 
     .title-block h1,
@@ -524,10 +506,28 @@
     }
 
     .screen-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      position: relative;
+      display: block;
+      padding-top: 2px;
+    }
+
+    .screen-header .title-block {
+      width: 100%;
+    }
+
+    .screen-header .title-block .eyebrow,
+    .screen-header .title-block .header-bar {
+      margin: 0 54px 12px;
+      text-align: center;
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .phone-screen.dark-shell .screen-header .title-block .eyebrow,
+    .phone-screen.dark-shell .screen-header .title-block .header-bar {
+      color: var(--text-dark);
     }
 
     .back-button,
@@ -556,6 +556,35 @@
       content: "<";
       font-size: 18px;
       transform: translateX(-1px);
+    }
+
+    .screen-header .back-button {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: auto;
+      height: auto;
+      min-height: 24px;
+      padding: 0 8px 0 0;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
+      color: var(--blue-strong);
+    }
+
+    .screen-header .back-button::before {
+      content: "< Back";
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transform: none;
+    }
+
+    .phone-screen.dark-shell .screen-header .back-button {
+      background: none;
+      border-color: transparent;
+      color: #9fc5ff;
     }
 
     .card,
@@ -802,17 +831,19 @@
     .reason-pill,
     .outcome-pill,
     .plan-pill {
-      min-height: 40px;
-      padding: 0 14px;
+      min-height: 38px;
+      padding: 8px 12px;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      border-radius: 999px;
+      justify-content: flex-start;
+      border-radius: 10px;
       border: 1px solid var(--line);
-      background: #ffffff;
-      color: var(--muted);
+      background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+      color: var(--text);
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
+      line-height: 1.3;
+      box-shadow: 0 6px 16px rgba(31, 63, 135, 0.05);
     }
 
     .phone-screen.dark-shell .chip,
@@ -823,7 +854,8 @@
     .phone-screen.dark-shell .plan-pill {
       background: rgba(255, 255, 255, 0.08);
       border-color: var(--line-dark);
-      color: var(--muted-dark);
+      color: var(--text-dark);
+      box-shadow: none;
     }
 
     .chip.active,
@@ -832,9 +864,10 @@
     .reason-pill.active,
     .outcome-pill.active,
     .plan-pill.active {
-      background: rgba(36, 91, 255, 0.12);
-      border-color: rgba(36, 91, 255, 0.18);
-      color: var(--blue);
+      background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
+      border-color: rgba(36, 91, 255, 0.22);
+      color: var(--blue-strong);
+      box-shadow: inset 3px 0 0 var(--blue);
     }
 
     .phone-screen.dark-shell .chip.active,
@@ -844,8 +877,9 @@
     .phone-screen.dark-shell .outcome-pill.active,
     .phone-screen.dark-shell .plan-pill.active {
       background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.2);
       color: #ffffff;
+      box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.85);
     }
 
     .choice-card,
@@ -1023,36 +1057,37 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      min-height: 28px;
-      padding: 0 10px;
-      border-radius: 999px;
+      min-height: 24px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border-left: 3px solid currentColor;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.05em;
     }
 
     .flag.info,
     .status-badge.info {
-      background: rgba(36, 91, 255, 0.1);
+      background: rgba(36, 91, 255, 0.08);
       color: var(--blue);
     }
 
     .flag.success,
     .status-badge.success {
-      background: rgba(28, 174, 113, 0.1);
+      background: rgba(28, 174, 113, 0.08);
       color: var(--success);
     }
 
     .flag.warning,
     .status-badge.warning {
-      background: rgba(255, 182, 72, 0.12);
+      background: rgba(255, 182, 72, 0.1);
       color: #ae6d00;
     }
 
     .flag.danger,
     .status-badge.danger {
-      background: rgba(240, 92, 92, 0.12);
+      background: rgba(240, 92, 92, 0.1);
       color: var(--danger);
     }
 
@@ -1217,9 +1252,7 @@
     }
 
     .overlay-card .eyebrow {
-      background: rgba(36, 91, 255, 0.08);
-      border-color: rgba(36, 91, 255, 0.12);
-      color: var(--blue);
+      color: var(--blue-strong);
     }
 
     .overlay-card .copy,
@@ -1263,9 +1296,7 @@
     }
 
     .phone-screen.dark-shell .overlay-card .eyebrow {
-      background: rgba(36, 91, 255, 0.08);
-      border-color: rgba(36, 91, 255, 0.12);
-      color: var(--blue);
+      color: var(--blue-strong);
     }
 
     .phone-screen.dark-shell .overlay-card .copy,
