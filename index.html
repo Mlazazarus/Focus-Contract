@@ -1619,6 +1619,7 @@
 
               <div class="button-stack">
                 <button class="button" id="launchStartButton" data-action="start-selected-contract">Start contract</button>
+                <button class="launch-link" data-go="onboarding">Review setup</button>
                 <button class="launch-link" data-go="dashboard">Open dashboard</button>
               </div>
             </div>
@@ -3514,6 +3515,7 @@
     }
 
     function renderReview() {
+      const hasTaskName = Boolean(state.contract.taskName.trim());
       refs.contractStatusBadge.textContent = state.contract.signed ? 'Signed' : 'Unsigned';
       refs.contractStatusBadge.className = 'status-badge ' + (state.contract.signed ? 'success' : 'info');
       refs.signatureTimeLabel.textContent = state.contract.signed ? 'Signed at ' + state.contract.signedAt : 'Awaiting signature';
@@ -3524,8 +3526,8 @@
       refs.reviewBlocks.textContent = state.contract.blocks.length ? state.contract.blocks.join(', ') : 'None selected';
       refs.reviewAllowlist.textContent = state.contract.allowlistTemplate;
       refs.reviewCommitment.textContent = state.contract.commitment.trim() || 'Add the sentence you want to sign.';
-      refs.signContractButton.disabled = state.contract.signed;
-      refs.signContractButton.textContent = state.contract.signed ? 'Signed' : 'Sign Contract';
+      refs.signContractButton.disabled = state.contract.signed || !hasTaskName;
+      refs.signContractButton.textContent = state.contract.signed ? 'Signed' : (hasTaskName ? 'Sign Contract' : 'Task required before signing');
       refs.startSessionButton.disabled = !state.contract.signed;
     }
 
